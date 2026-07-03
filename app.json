@@ -1,0 +1,77 @@
+{
+  "expo": {
+    "name": "Durflex",
+    "slug": "durflex",
+    "scheme": "durflex",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": false,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F5E100"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ganadoapp.app",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Durflex usa Bluetooth para conectar el bastón RFID.",
+        "NSBluetoothPeripheralUsageDescription": "Durflex usa Bluetooth para conectar el bastón RFID."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F5E100"
+      },
+      "package": "com.ganadoapp.app",
+      "permissions": [
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_CONNECT",
+        "BLUETOOTH_SCAN",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ],
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-sqlite",
+      "@react-native-community/datetimepicker",
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Durflex accede a tus fotos para adjuntar imágenes a los animales.",
+          "cameraPermission": "Durflex usa la cámara para fotografiar animales."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Durflex captura la ubicación GPS al registrar animales.",
+          "locationWhenInUsePermission": "Durflex captura la ubicación GPS al registrar animales."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#F5E100",
+          "sounds": []
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "148c4ce9-beee-4f5f-abad-c38fcffc697f"
+      }
+    }
+  }
+}
