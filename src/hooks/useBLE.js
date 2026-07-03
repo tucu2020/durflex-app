@@ -93,16 +93,20 @@ export function useBLE() {
   const [error, setError]         = useState('');
   const [btState, setBtState]     = useState(nativeAvailable ? 'Unknown' : 'Mock');
 
-  const scanTimer   = useRef(null);
-  const readTimer   = useRef(null);
-  const dataSub     = useRef(null);   // suscripción onDataReceived
-  const disconnSub  = useRef(null);   // suscripción onDeviceDisconnected
+  const scanTimer    = useRef(null);
+  const readTimer    = useRef(null);
+  const dataSub      = useRef(null);   // suscripción onDataReceived
+  const disconnSub   = useRef(null);   // suscripción onDeviceDisconnected
+  const readInterval = useRef(null);   // sondeo de lectura por bytes
+  const deviceRef    = useRef(null);   // dispositivo conectado
+  const bufferRef    = useRef('');     // acumulador de bytes crudos
 
   // Limpieza al desmontar
   useEffect(() => {
     return () => {
       clearTimeout(scanTimer.current);
       clearTimeout(readTimer.current);
+      clearInterval(readInterval.current);
       try { dataSub.current?.remove?.(); } catch (e) {}
       try { disconnSub.current?.remove?.(); } catch (e) {}
     };
@@ -205,26 +209,53 @@ export function useBLE() {
       const habilitado = await RNBluetoothClassic.isBluetoothEnabled();
       if (!habilitado) { setError('Bluetooth apagado.'); return; }
 
-      // Conexión SPP. delimiter '\n': onDataReceived dispara por cada línea.
+      // Conexión SPP. Muchos lectores (p. ej. Allflex XRS2i) terminan la
+      // lectura con retorno de carro (\r), no con salto de línea (\n). Para no
+      // depender de eso, leemos por SONDEO todos los bytes disponibles y
+      // separamos las lecturas por \r o \n.
       const device = await RNBluetoothClassic.connectToDevice(deviceId, {
-        delimiter: '\n',
+        DELIMITER: '',
         DEVICE_CHARSET: 'ascii',
       });
 
+      deviceRef.current = device;
+      bufferRef.current = '';
       setConnected({ id: deviceId, name: device?.name || deviceId });
       setBtState('Connected');
 
-      // Escuchar datos entrantes → cada lectura del bastón.
-      dataSub.current = device.onDataReceived((event) => {
-        const raw = (event?.data ?? '').toString();
-        if (!raw) return;
-        pushRaw(raw);
-        const caravana = parseCaravana(raw);
-        if (caravana) setLastRead(caravana);
-      });
+      // Procesa un fragmento crudo recibido del bastón.
+      const procesar = (chunk) => {
+        const texto = (chunk ?? '').toString();
+        if (!texto) return;
+        pushRaw(texto);                       // mostrar TODO lo que llega, crudo
+        bufferRef.current += texto;
+        const partes = bufferRef.current.split(/[\r\n]+/);
+        bufferRef.current = partes.pop();     // guardar el resto incompleto
+        partes.forEach((linea) => {
+          const c = parseCaravana(linea);
+          if (c) setLastRead(c);
+        });
+      };
+
+      // (a) Evento por si el lector sí usa delimitador.
+      try {
+        dataSub.current = device.onDataReceived((event) => procesar(event?.data));
+      } catch (e) { /* algunos entornos no exponen el evento; seguimos con sondeo */ }
+
+      // (b) Sondeo cada 200 ms: lee lo que haya en el buffer, sin delimitador.
+      readInterval.current = setInterval(async () => {
+        try {
+          const disp = await device.available();
+          if (disp && disp > 0) {
+            const data = await device.read();
+            if (data) procesar(data);
+          }
+        } catch (e) { /* ignorar errores de sondeo puntuales */ }
+      }, 200);
 
       // Escuchar desconexión física del dispositivo.
       disconnSub.current = RNBluetoothClassic.onDeviceDisconnected(() => {
+        clearInterval(readInterval.current);
         setConnected(null);
         setBtState('Disconnected');
         try { dataSub.current?.remove?.(); } catch (e) {}
@@ -236,11 +267,14 @@ export function useBLE() {
 
   const disconnect = useCallback(async () => {
     clearTimeout(readTimer.current);
+    clearInterval(readInterval.current);
+    bufferRef.current = '';
     try { dataSub.current?.remove?.(); } catch (e) {}
     try { disconnSub.current?.remove?.(); } catch (e) {}
     if (nativeAvailable && connected?.id) {
       try { await RNBluetoothClassic.disconnectFromDevice(connected.id); } catch (e) {}
     }
+    deviceRef.current = null;
     setConnected(null);
     setLastRead('');
     setBtState(nativeAvailable ? 'Unknown' : 'Mock');
