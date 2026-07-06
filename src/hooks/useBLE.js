@@ -51,10 +51,13 @@ function randomCaravana() {
 export function parseCaravana(raw) {
   if (!raw) return '';
   const limpio = String(raw).replace(/[\r\n]+/g, ' ').trim();
-  const matches = limpio.match(/[0-9][0-9.]{4,}/g);
-  if (matches && matches.length) {
-    return matches.sort((a, b) => b.length - a.length)[0];
-  }
+  // Las lecturas RFID llegan como dígitos y, en muchos lectores (p. ej. el
+  // Allflex XRS2i), el código de país viene separado por un espacio:
+  //   "032 010005487840"  ->  032 (país) + 010005487840 (animal)
+  // Unimos TODOS los dígitos para formar el número ISO completo (15 cifras).
+  const soloDigitos = limpio.replace(/\D+/g, '');
+  if (soloDigitos.length >= 8) return soloDigitos;
+  // Si no hay suficientes dígitos, devolver la línea limpia tal cual.
   return limpio;
 }
 
@@ -100,6 +103,7 @@ export function useBLE() {
   const readInterval = useRef(null);   // sondeo de lectura por bytes
   const deviceRef    = useRef(null);   // dispositivo conectado
   const bufferRef    = useRef('');     // acumulador de bytes crudos
+  const connectingRef = useRef(false); // evita conexiones superpuestas
 
   // Limpieza al desmontar
   useEffect(() => {
@@ -205,18 +209,42 @@ export function useBLE() {
     }
 
     // ---- Real ----
+    if (connectingRef.current) return;   // ya hay un intento en curso
+    connectingRef.current = true;
     try {
       const habilitado = await RNBluetoothClassic.isBluetoothEnabled();
       if (!habilitado) { setError('Bluetooth apagado.'); return; }
+
+      // Cortar la búsqueda: conectar durante el descubrimiento suele fallar.
+      try { await RNBluetoothClassic.cancelDiscovery(); } catch (e) {}
+      setScanning(false);
+
+      // Si quedó una conexión previa colgada con este dispositivo, cerrarla.
+      try {
+        if (await RNBluetoothClassic.isDeviceConnected(deviceId)) {
+          await RNBluetoothClassic.disconnectFromDevice(deviceId);
+        }
+      } catch (e) {}
 
       // Conexión SPP. Muchos lectores (p. ej. Allflex XRS2i) terminan la
       // lectura con retorno de carro (\r), no con salto de línea (\n). Para no
       // depender de eso, leemos por SONDEO todos los bytes disponibles y
       // separamos las lecturas por \r o \n.
-      const device = await RNBluetoothClassic.connectToDevice(deviceId, {
-        DELIMITER: '',
-        DEVICE_CHARSET: 'ascii',
-      });
+      // El error 'read failed, socket might closed' suele ser intermitente:
+      // reintentamos una vez tras una pausa breve.
+      let device = null;
+      for (let intento = 1; intento <= 2 && !device; intento++) {
+        try {
+          device = await RNBluetoothClassic.connectToDevice(deviceId, {
+            DELIMITER: '',
+            DEVICE_CHARSET: 'ascii',
+          });
+        } catch (e) {
+          if (intento >= 2) throw e;
+          try { await RNBluetoothClassic.disconnectFromDevice(deviceId); } catch (_) {}
+          await new Promise((r) => setTimeout(r, 600));
+        }
+      }
 
       deviceRef.current = device;
       bufferRef.current = '';
@@ -262,6 +290,8 @@ export function useBLE() {
       });
     } catch (e) {
       setError(`No se pudo conectar: ${e?.message ?? e}`);
+    } finally {
+      connectingRef.current = false;
     }
   }, []);
 

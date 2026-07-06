@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
   SafeAreaView, Modal, TextInput, Alert, ScrollView,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import {
@@ -9,6 +10,7 @@ import {
   deleteEstablecimiento, getUsuariosEstablecimiento, insertUsuario, deleteUsuario,
 } from '../db/database';
 import { Colors } from '../utils/colors';
+import { formatRenspa } from '../utils/formatters';
 import FormField, { Input } from '../components/FormField';
 
 const EST_EMPTY = {
@@ -136,7 +138,7 @@ export default function EstablecimientosScreen() {
 
       {/* Modal crear/editar */}
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.overlay}>
+        <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <SafeAreaView style={styles.sheet}>
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>{editando ? 'Editar establecimiento' : 'Nuevo establecimiento'}</Text>
@@ -146,7 +148,7 @@ export default function EstablecimientosScreen() {
             </View>
             <ScrollView style={{ padding: 16 }} keyboardShouldPersistTaps="handled">
               <FormField label="Nombre *"><Input value={form.nombre} onChangeText={(v) => set('nombre', v)} placeholder="Nombre del campo" /></FormField>
-              <FormField label="RENSPA"><Input value={form.renspa} onChangeText={(v) => set('renspa', v)} placeholder="Ej: 14.100.0.00123/00" /></FormField>
+              <FormField label="RENSPA"><Input value={form.renspa} onChangeText={(v) => set('renspa', formatRenspa(v))} placeholder="Ej: 14.100.0.00123/00" autoCapitalize="characters" autoCorrect={false} maxLength={17} /></FormField>
               <FormField label="Provincia"><Input value={form.provincia} onChangeText={(v) => set('provincia', v)} placeholder="Provincia" /></FormField>
               <FormField label="Partido"><Input value={form.partido} onChangeText={(v) => set('partido', v)} placeholder="Partido" /></FormField>
               <FormField label="Localidad"><Input value={form.localidad} onChangeText={(v) => set('localidad', v)} placeholder="Localidad" /></FormField>
@@ -158,7 +160,7 @@ export default function EstablecimientosScreen() {
               <View style={{ height: 32 }} />
             </ScrollView>
           </SafeAreaView>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Modal detalle con usuarios */}

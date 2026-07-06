@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Alert, ActivityIndicator, Modal, FlatList, SafeAreaView, Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -12,6 +13,7 @@ import {
 import { useBLE } from '../hooks/useBLE';
 import { Colors } from '../utils/colors';
 import FormField, { Input } from '../components/FormField';
+import { formatRenspa } from '../utils/formatters';
 import Picker from '../components/Picker';
 
 const MESES = [
@@ -57,7 +59,7 @@ export default function RegistroAnimalScreen() {
 
   // Modal nuevo establecimiento
   const [showNuevoEst, setShowNuevoEst] = useState(false);
-  const [nuevoEst, setNuevoEst]         = useState({ nombre: '', cuig: '' });
+  const [nuevoEst, setNuevoEst]         = useState({ nombre: '', renspa: '' });
 
   const {
     scanning, devices, connected, lastRead, error: bleError,
@@ -128,10 +130,10 @@ export default function RegistroAnimalScreen() {
       Alert.alert('Error', 'El nombre es obligatorio');
       return;
     }
-    const id = await insertEstablecimiento({ nombre: nuevoEst.nombre, cuig: nuevoEst.cuig });
+    const id = await insertEstablecimiento({ nombre: nuevoEst.nombre, renspa: nuevoEst.renspa });
     await cargarEstabs();
     set('establecimiento_id', id);
-    setNuevoEst({ nombre: '', cuig: '' });
+    setNuevoEst({ nombre: '', renspa: '' });
     setShowNuevoEst(false);
   }
 
@@ -143,7 +145,7 @@ export default function RegistroAnimalScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 160 }}>
         <View style={styles.container}>
 
           {/* Caravana + BLE */}
@@ -309,7 +311,7 @@ export default function RegistroAnimalScreen() {
 
       {/* ── Modal Nuevo Establecimiento ─────────────────── */}
       <Modal visible={showNuevoEst} animationType="slide" transparent>
-        <View style={styles.overlay}>
+        <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <SafeAreaView style={styles.sheet}>
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>Nuevo establecimiento</Text>
@@ -326,11 +328,14 @@ export default function RegistroAnimalScreen() {
                   autoFocus
                 />
               </FormField>
-              <FormField label="CUIG / RENSPA">
+              <FormField label="RENSPA">
                 <Input
-                  value={nuevoEst.cuig}
-                  onChangeText={(v) => setNuevoEst((p) => ({ ...p, cuig: v }))}
-                  placeholder="Ej: 30-12345678-9"
+                  value={nuevoEst.renspa}
+                  onChangeText={(v) => setNuevoEst((p) => ({ ...p, renspa: formatRenspa(v) }))}
+                  placeholder="Ej: 14.100.0.00123/00"
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  maxLength={17}
                 />
               </FormField>
               <TouchableOpacity style={styles.saveBtn} onPress={crearEstablecimiento}>
@@ -338,7 +343,7 @@ export default function RegistroAnimalScreen() {
               </TouchableOpacity>
             </View>
           </SafeAreaView>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

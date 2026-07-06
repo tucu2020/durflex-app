@@ -32,7 +32,7 @@ function HamburgerBtn({ onPress }) {
 }
 
 const TAB_ICONS = {
-  Inicio: '🏠', Animales: '🐄', Establecimientos: '🌾', Exportar: '📤', Dispositivos: '📡',
+  Inicio: '🏠', Animales: '🐄', Establecimientos: '🚜', Exportar: '📤', Dispositivos: '📡',
 };
 
 export default function AppNavigator() {
@@ -95,7 +95,7 @@ export default function AppNavigator() {
         <Tab.Navigator screenOptions={tabScreenOptions}>
           <Tab.Screen name="Inicio"           component={InicioScreen} />
           <Tab.Screen name="Animales"         component={AnimalesStack} options={{ headerShown: false }} />
-          <Tab.Screen name="Establecimientos" component={EstablecimientosScreen} />
+          <Tab.Screen name="Establecimientos" component={EstablecimientosScreen} options={{ tabBarLabel: 'Campo' }} />
           <Tab.Screen name="Exportar"         component={ExportarScreen} />
           <Tab.Screen name="Dispositivos"     component={DispositivosScreen} />
         </Tab.Navigator>

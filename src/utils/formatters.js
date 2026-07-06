@@ -35,3 +35,16 @@ export function formatSenasaLine(animal) {
     : '';
   return `${codigo}-${sexo}-${raza}-${fechaNac}`;
 }
+
+// Auto-formatea un RENSPA a NN.NNN.N.NNNNN/XX mientras se tipea.
+// El último segmento (productor) puede ser alfanumérico (p. ej. "/0A").
+export function formatRenspa(input) {
+  if (input == null) return '';
+  const v = String(input).toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 13);
+  let out = v.slice(0, 2);
+  if (v.length > 2)  out += '.' + v.slice(2, 5);
+  if (v.length > 5)  out += '.' + v.slice(5, 6);
+  if (v.length > 6)  out += '.' + v.slice(6, 11);
+  if (v.length > 11) out += '/' + v.slice(11, 13);
+  return out;
+}

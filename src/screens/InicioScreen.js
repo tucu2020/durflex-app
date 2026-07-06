@@ -9,7 +9,7 @@ import { formatSenasaLine, categoriaNombre } from '../utils/formatters';
 import { Colors } from '../utils/colors';
 import StatCard from '../components/StatCard';
 import AnimalCard from '../components/AnimalCard';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { utils as XLSXUtils, write as XLSXWrite } from 'xlsx';
 
