@@ -124,7 +124,7 @@ export default function EstablecimientosScreen() {
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>🌾</Text>
+            <Text style={styles.emptyIcon}>🚜</Text>
             <Text style={styles.emptyText}>No hay establecimientos registrados</Text>
           </View>
         }

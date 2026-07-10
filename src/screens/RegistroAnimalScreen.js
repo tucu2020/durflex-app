@@ -7,7 +7,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import {
-  insertAnimal, updateAnimal, getAnimalById,
+  insertAnimal, updateAnimal, getAnimalById, getAnimalByCaravana,
   getEstablecimientos, insertEstablecimiento,
 } from '../db/database';
 import { useBLE } from '../hooks/useBLE';
@@ -41,16 +41,25 @@ const RAZAS   = [
   'Limousin','Simmental','Shorthorn','Charolais','Otro',
 ].map((r) => ({ value: r, label: r }));
 
+const FORM_EMPTY = {
+  caravana: '', caravana_visual: '', establecimiento_id: '', peso: '', edad: '',
+  categoria: '', estado_reproductivo: '', raza: '', sexo: '',
+  fecha_nacimiento: '', observaciones: '', estado: 'ok',
+};
+
+// Ultimos 4 digitos del numero electronico (identificacion visual rapida).
+function ultimos4(v) {
+  return String(v || '').replace(/\D/g, '').slice(-4);
+}
+
 export default function RegistroAnimalScreen() {
   const navigation = useNavigation();
   const route      = useRoute();
   const editId     = route.params?.id;
 
-  const [form, setForm] = useState({
-    caravana: '', establecimiento_id: '', peso: '', edad: '',
-    categoria: '', estado_reproductivo: '', raza: '', sexo: '',
-    fecha_nacimiento: '', observaciones: '', estado: 'ok',
-  });
+  const [form, setForm] = useState({ ...FORM_EMPTY });
+  const [visualAuto, setVisualAuto] = useState(true);
+  const [duplicado, setDuplicado] = useState(null);
   const [errors, setErrors]             = useState({});
   const [establecimientos, setEstabs]   = useState([]);
   const [saving, setSaving]             = useState(false);
@@ -71,18 +80,35 @@ export default function RegistroAnimalScreen() {
   useEffect(() => {
     if (editId) {
       getAnimalById(editId).then((a) => {
-        if (a) setForm({ ...a, peso: String(a.peso ?? ''), edad: String(a.edad ?? '') });
+        if (a) {
+          setForm({ ...a, peso: String(a.peso ?? ''), edad: String(a.edad ?? ''), caravana_visual: a.caravana_visual ?? '' });
+          setVisualAuto(false);
+        }
       });
     }
   }, [editId]);
 
   useEffect(() => {
     if (lastRead) {
-      setForm((prev) => ({ ...prev, caravana: lastRead }));
+      setForm((prev) => ({ ...prev, caravana: lastRead, caravana_visual: visualAuto ? ultimos4(lastRead) : prev.caravana_visual }));
       clearLastRead();
       setShowBLE(false);
     }
-  }, [lastRead, clearLastRead]);
+  }, [lastRead, clearLastRead, visualAuto]);
+
+  // Detectar si la caravana ya está registrada
+  useEffect(() => {
+    const c = form.caravana.trim();
+    if (!c) { setDuplicado(null); return; }
+    let cancel = false;
+    const t = setTimeout(async () => {
+      try {
+        const found = await getAnimalByCaravana(c, editId);
+        if (!cancel) setDuplicado(found || null);
+      } catch (e) { /* ignore */ }
+    }, 350);
+    return () => { cancel = true; clearTimeout(t); };
+  }, [form.caravana, editId]);
 
   async function cargarEstabs() {
     const rows = await getEstablecimientos();
@@ -92,6 +118,20 @@ export default function RegistroAnimalScreen() {
   function set(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: undefined }));
+  }
+
+  function onChangeCaravana(v) {
+    setForm((prev) => ({
+      ...prev,
+      caravana: v,
+      caravana_visual: visualAuto ? ultimos4(v) : prev.caravana_visual,
+    }));
+    setErrors((prev) => ({ ...prev, caravana: undefined }));
+  }
+
+  function usarUltimaLectura() {
+    const ult = form.caravana.replace(/\D/g, '').slice(-15);
+    setForm((prev) => ({ ...prev, caravana: ult, caravana_visual: visualAuto ? ult.slice(-4) : prev.caravana_visual }));
   }
 
   function validate() {
@@ -105,8 +145,7 @@ export default function RegistroAnimalScreen() {
     return !Object.keys(e).length;
   }
 
-  async function guardar() {
-    if (!validate()) return;
+  async function doGuardar(seguir) {
     setSaving(true);
     try {
       const data = {
@@ -117,12 +156,35 @@ export default function RegistroAnimalScreen() {
       };
       if (editId) await updateAnimal(editId, data);
       else        await insertAnimal(data);
-      navigation.goBack();
+      if (seguir && !editId) {
+        setForm({ ...FORM_EMPTY, establecimiento_id: form.establecimiento_id });
+        setVisualAuto(true);
+        setErrors({});
+        setDuplicado(null);
+      } else {
+        navigation.goBack();
+      }
     } catch (e) {
       Alert.alert('Error', e.message);
     } finally {
       setSaving(false);
     }
+  }
+
+  async function guardar(seguir = false) {
+    if (!validate()) return;
+    if (duplicado && !editId) {
+      Alert.alert(
+        'Caravana repetida',
+        'Esta caravana ya está registrada. ¿Querés registrarla igual?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Registrar igual', onPress: () => doGuardar(seguir) },
+        ],
+      );
+      return;
+    }
+    doGuardar(seguir);
   }
 
   async function crearEstablecimiento() {
@@ -143,6 +205,10 @@ export default function RegistroAnimalScreen() {
     if (date) set('fecha_nacimiento', date.toISOString().split('T')[0]);
   }
 
+  const digitos = form.caravana.replace(/\D/g, '');
+  const dobleLectura = digitos.length > 15;
+  const lecturaOk = digitos.length === 15;
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 160 }}>
@@ -154,8 +220,8 @@ export default function RegistroAnimalScreen() {
               <Input
                 style={{ flex: 1 }}
                 value={form.caravana}
-                onChangeText={(v) => set('caravana', v)}
-                placeholder="Ej: AR.14.0001.2024"
+                onChangeText={onChangeCaravana}
+                placeholder="Nº electrónico o visual"
                 autoCapitalize="characters"
               />
               <TouchableOpacity style={styles.bleBtn} onPress={() => setShowBLE(true)}>
@@ -163,6 +229,40 @@ export default function RegistroAnimalScreen() {
               </TouchableOpacity>
             </View>
           </FormField>
+
+          {dobleLectura && (
+            <View style={styles.avisoDoble}>
+              <Text style={styles.avisoDobleText}>⚠️ Parece doble lectura ({digitos.length} dígitos)</Text>
+              <TouchableOpacity onPress={usarUltimaLectura} style={styles.avisoDobleBtn}>
+                <Text style={styles.avisoDobleBtnText}>Usar la última</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {lecturaOk && (
+            <Text style={styles.lecturaOk}>✓ Caravana válida · visual: {ultimos4(form.caravana)}</Text>
+          )}
+
+          <FormField label="Caravana visual (opcional)">
+            <Input
+              value={form.caravana_visual}
+              onChangeText={(v) => { setVisualAuto(false); setForm((prev) => ({ ...prev, caravana_visual: v })); }}
+              placeholder="Últimos 4 del RFID o Nº de plástico"
+              autoCapitalize="characters"
+            />
+          </FormField>
+
+          {duplicado && !editId && (
+            <TouchableOpacity style={styles.dupCard} onPress={() => navigation.navigate('DetalleAnimal', { id: duplicado.id })}>
+              <Text style={styles.dupTitle}>⚠️ Caravana ya registrada</Text>
+              <Text style={styles.dupInfo}>
+                {duplicado.categoria || 'Animal'}
+                {duplicado.establecimiento_nombre ? ` · ${duplicado.establecimiento_nombre}` : ''}
+                {duplicado.caravana_visual ? ` · visual ${duplicado.caravana_visual}` : ''}
+              </Text>
+              <Text style={styles.dupInfo}>Registrada el {String(duplicado.created_at || '').slice(0, 10)}</Text>
+              <Text style={styles.dupLink}>Ver este animal →</Text>
+            </TouchableOpacity>
+          )}
 
           {/* Establecimiento + botón Nuevo */}
           <FormField label="Establecimiento" error={errors.establecimiento_id}>
@@ -248,10 +348,15 @@ export default function RegistroAnimalScreen() {
             />
           </FormField>
 
-          <TouchableOpacity style={styles.saveBtn} onPress={guardar} disabled={saving}>
+          {!editId && (
+            <TouchableOpacity style={styles.saveBtnAlt} onPress={() => guardar(true)} disabled={saving}>
+              <Text style={styles.saveBtnAltText}>💾 Guardar y cargar otro</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.saveBtn} onPress={() => guardar(false)} disabled={saving}>
             {saving
               ? <ActivityIndicator color={Colors.primary} />
-              : <Text style={styles.saveBtnText}>{editId ? 'Guardar cambios' : 'Registrar animal'}</Text>
+              : <Text style={styles.saveBtnText}>{editId ? 'Guardar cambios' : 'Registrar y volver'}</Text>
             }
           </TouchableOpacity>
           <View style={{ height: 32 }} />
@@ -364,6 +469,17 @@ const styles = StyleSheet.create({
 
   saveBtn:     { backgroundColor: Colors.text, borderRadius: 12, paddingVertical: 15, alignItems: 'center', marginTop: 8 },
   saveBtnText: { color: Colors.primary, fontWeight: '800', fontSize: 16 },
+  saveBtnAlt:  { backgroundColor: Colors.primary, borderWidth: 2, borderColor: Colors.text, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 8 },
+  saveBtnAltText: { color: Colors.text, fontWeight: '800', fontSize: 15 },
+  avisoDoble:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFF3E0', borderWidth: 1, borderColor: '#FFB74D', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 10, marginTop: -4 },
+  avisoDobleText: { color: '#E65100', fontSize: 12, fontWeight: '600', flex: 1 },
+  avisoDobleBtn: { backgroundColor: '#E65100', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, marginLeft: 8 },
+  avisoDobleBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  lecturaOk:   { color: Colors.ok, fontSize: 12, fontWeight: '700', marginBottom: 10, marginTop: -4 },
+  dupCard:     { backgroundColor: '#FDECEA', borderWidth: 1, borderColor: '#F5B7B1', borderRadius: 12, padding: 12, marginBottom: 12 },
+  dupTitle:    { color: '#922B21', fontWeight: '800', fontSize: 14, marginBottom: 4 },
+  dupInfo:     { color: '#922B21', fontSize: 12, marginTop: 1 },
+  dupLink:     { color: Colors.pendiente, fontWeight: '700', fontSize: 13, marginTop: 6 },
 
   dateBtn:         { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   dateBtnText:     { fontSize: 15, color: Colors.text },

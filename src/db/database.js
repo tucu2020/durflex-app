@@ -6,8 +6,19 @@ export async function getDatabase() {
   if (!db) {
     db = await SQLite.openDatabaseAsync('ganadoapp.db');
     await initDatabase(db);
+    await migrate(db);
   }
   return db;
+}
+
+// Migraciones incrementales (best-effort) para bases ya creadas.
+async function migrate(db) {
+  try {
+    const cols = await db.getAllAsync('PRAGMA table_info(animales)');
+    if (!cols.some((c) => c.name === 'caravana_visual')) {
+      await db.execAsync('ALTER TABLE animales ADD COLUMN caravana_visual TEXT');
+    }
+  } catch (e) { /* si ya existe u otro caso, seguimos */ }
 }
 
 async function initDatabase(db) {
@@ -88,11 +99,11 @@ async function initDatabase(db) {
 export async function insertAnimal(animal) {
   const db = await getDatabase();
   const result = await db.runAsync(
-    `INSERT INTO animales (caravana, establecimiento_id, peso, edad, categoria,
+    `INSERT INTO animales (caravana, caravana_visual, establecimiento_id, peso, edad, categoria,
       estado_reproductivo, raza, sexo, fecha_nacimiento, observaciones, estado)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      animal.caravana, animal.establecimiento_id, animal.peso, animal.edad,
+      animal.caravana, animal.caravana_visual ?? null, animal.establecimiento_id, animal.peso, animal.edad,
       animal.categoria, animal.estado_reproductivo, animal.raza, animal.sexo,
       animal.fecha_nacimiento, animal.observaciones, animal.estado || 'ok',
     ]
@@ -103,11 +114,11 @@ export async function insertAnimal(animal) {
 export async function updateAnimal(id, animal) {
   const db = await getDatabase();
   await db.runAsync(
-    `UPDATE animales SET caravana=?, establecimiento_id=?, peso=?, edad=?, categoria=?,
+    `UPDATE animales SET caravana=?, caravana_visual=?, establecimiento_id=?, peso=?, edad=?, categoria=?,
       estado_reproductivo=?, raza=?, sexo=?, fecha_nacimiento=?, observaciones=?,
       estado=?, updated_at=datetime('now'), synced=0 WHERE id=?`,
     [
-      animal.caravana, animal.establecimiento_id, animal.peso, animal.edad,
+      animal.caravana, animal.caravana_visual ?? null, animal.establecimiento_id, animal.peso, animal.edad,
       animal.categoria, animal.estado_reproductivo, animal.raza, animal.sexo,
       animal.fecha_nacimiento, animal.observaciones, animal.estado || 'ok', id,
     ]
@@ -139,6 +150,17 @@ export async function getAnimalById(id) {
      WHERE a.id = ?`,
     [id]
   );
+}
+
+export async function getAnimalByCaravana(caravana, excludeId = null) {
+  const db = await getDatabase();
+  const base = `SELECT a.*, e.nombre as establecimiento_nombre
+     FROM animales a LEFT JOIN establecimientos e ON a.establecimiento_id = e.id
+     WHERE a.caravana = ?`;
+  if (excludeId) {
+    return await db.getFirstAsync(base + ' AND a.id != ? LIMIT 1', [caravana, excludeId]);
+  }
+  return await db.getFirstAsync(base + ' LIMIT 1', [caravana]);
 }
 
 export async function deleteAnimal(id) {

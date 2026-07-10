@@ -89,6 +89,7 @@ export default function ExportarScreen() {
 
           data: animales.map((a) => ({
             'Caravana': a.caravana,
+            'Caravana visual': a.caravana_visual || '',
             'Categoría': categoriaNombre(a.categoria),
             'Sexo': a.sexo === 'macho' ? 'Macho' : a.sexo === 'hembra' ? 'Hembra' : '',
             'Raza': a.raza || '',
@@ -147,6 +148,7 @@ export default function ExportarScreen() {
           name: 'Existencias',
           data: animales.map((a) => ({
             'Caravana': a.caravana,
+            'Caravana visual': a.caravana_visual || '',
             'Categoría': categoriaNombre(a.categoria),
             'Sexo': a.sexo === 'macho' ? 'Macho' : a.sexo === 'hembra' ? 'Hembra' : '',
             'Raza': a.raza || '',

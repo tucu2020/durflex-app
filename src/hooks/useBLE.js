@@ -230,21 +230,24 @@ export function useBLE() {
       // lectura con retorno de carro (\r), no con salto de línea (\n). Para no
       // depender de eso, leemos por SONDEO todos los bytes disponibles y
       // separamos las lecturas por \r o \n.
-      // El error 'read failed, socket might closed' suele ser intermitente:
-      // reintentamos una vez tras una pausa breve.
+      // El error 'read failed, socket might closed' es tipico de lectores
+      // chinos y suele ceder al 2do/3er intento. Reintentamos con limpieza.
       let device = null;
-      for (let intento = 1; intento <= 2 && !device; intento++) {
+      let ultimoError = null;
+      for (let intento = 1; intento <= 3 && !device; intento++) {
         try {
           device = await RNBluetoothClassic.connectToDevice(deviceId, {
             DELIMITER: '',
             DEVICE_CHARSET: 'ascii',
           });
         } catch (e) {
-          if (intento >= 2) throw e;
+          ultimoError = e;
           try { await RNBluetoothClassic.disconnectFromDevice(deviceId); } catch (_) {}
-          await new Promise((r) => setTimeout(r, 600));
+          try { await RNBluetoothClassic.cancelDiscovery(); } catch (_) {}
+          await new Promise((r) => setTimeout(r, 1000));
         }
       }
+      if (!device) throw ultimoError || new Error('No se pudo abrir el puerto.');
 
       deviceRef.current = device;
       bufferRef.current = '';

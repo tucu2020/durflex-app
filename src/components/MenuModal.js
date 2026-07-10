@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Colors } from '../utils/colors';
 import { getSetting, setSetting } from '../db/database';
+import { formatRenspa } from '../utils/formatters';
 
 export default function MenuModal({ visible, onClose }) {
   const [tab, setTab]                 = useState('menu'); // 'menu' | 'config'
@@ -72,7 +73,7 @@ export default function MenuModal({ visible, onClose }) {
 
               {/* Sync / Login */}
               <TouchableOpacity style={styles.item} onPress={() =>
-                Alert.alert('Sync en la nube', 'Para activar la sincronización, configurá tu proyecto Supabase en src/db/supabase.js')
+                Alert.alert('Sync en la nube', 'La sincronización en la nube estará disponible próximamente.')
               }>
                 <Text style={styles.itemIcon}>☁️</Text>
                 <View style={styles.itemContent}>
@@ -89,7 +90,7 @@ export default function MenuModal({ visible, onClose }) {
                 <Text style={styles.itemIcon}>⚙️</Text>
                 <View style={styles.itemContent}>
                   <Text style={styles.itemTitle}>Configuración</Text>
-                  <Text style={styles.itemSub}>Operador, CUIG por defecto</Text>
+                  <Text style={styles.itemSub}>Operador, RENSPA por defecto</Text>
                 </View>
                 <Text style={styles.itemArrow}>›</Text>
               </TouchableOpacity>
@@ -133,14 +134,16 @@ export default function MenuModal({ visible, onClose }) {
                 placeholderTextColor={Colors.textMuted}
               />
 
-              <Text style={styles.configLabel}>CUIG por defecto</Text>
+              <Text style={styles.configLabel}>RENSPA por defecto</Text>
               <TextInput
                 style={styles.configInput}
                 value={defaultCUIG}
-                onChangeText={setDefaultCUIG}
-                placeholder="Ej: 30-12345678-9"
+                onChangeText={(v) => setDefaultCUIG(formatRenspa(v))}
+                placeholder="Ej: 14.100.0.00123/00"
                 placeholderTextColor={Colors.textMuted}
-                keyboardType="numbers-and-punctuation"
+                autoCapitalize="characters"
+                autoCorrect={false}
+                maxLength={17}
               />
 
               <TouchableOpacity style={styles.saveBtn} onPress={guardarConfig} disabled={saving}>
