@@ -8,6 +8,7 @@ import InicioScreen          from '../screens/InicioScreen';
 import AnimalesScreen        from '../screens/AnimalesScreen';
 import RegistroAnimalScreen  from '../screens/RegistroAnimalScreen';
 import DetalleAnimalScreen   from '../screens/DetalleAnimalScreen';
+import LoteScreen           from '../screens/LoteScreen';
 import EstablecimientosScreen from '../screens/EstablecimientosScreen';
 import ExportarScreen        from '../screens/ExportarScreen';
 import DispositivosScreen    from '../screens/DispositivosScreen';
@@ -66,6 +67,11 @@ export default function AppNavigator() {
           name="DetalleAnimal"
           component={DetalleAnimalScreen}
           options={headerOptions({ headerTitle: 'Detalle', headerTitleStyle: { fontWeight: '700', color: Colors.headerTint } })}
+        />
+        <Stack.Screen
+          name="EscaneoLote"
+          component={LoteScreen}
+          options={headerOptions({ headerTitle: 'Escanear varios', headerTitleStyle: { fontWeight: '700', color: Colors.headerTint } })}
         />
       </Stack.Navigator>
     );

@@ -83,6 +83,13 @@ export default function AnimalesScreen() {
       />
 
       <TouchableOpacity
+        style={styles.fabLote}
+        onPress={() => navigation.navigate('EscaneoLote')}
+      >
+        <Text style={styles.fabLoteText}>📡 Escanear varios</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
         style={styles.fab}
         onPress={() => navigation.navigate('RegistroAnimal')}
       >
@@ -150,4 +157,21 @@ const styles = StyleSheet.create({
     borderColor: Colors.text,
   },
   fabText: { fontSize: 28, color: Colors.text, lineHeight: 32 },
+  fabLote: {
+    position: 'absolute',
+    bottom: 92,
+    right: 24,
+    paddingHorizontal: 16,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.text,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+  },
+  fabLoteText: { fontSize: 14, color: Colors.primary, fontWeight: '800' },
 });

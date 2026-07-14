@@ -60,6 +60,7 @@ export default function RegistroAnimalScreen() {
   const [form, setForm] = useState({ ...FORM_EMPTY });
   const [visualAuto, setVisualAuto] = useState(true);
   const [duplicado, setDuplicado] = useState(null);
+  const [ajustado, setAjustado] = useState(false);
   const [errors, setErrors]             = useState({});
   const [establecimientos, setEstabs]   = useState([]);
   const [saving, setSaving]             = useState(false);
@@ -90,7 +91,7 @@ export default function RegistroAnimalScreen() {
 
   useEffect(() => {
     if (lastRead) {
-      setForm((prev) => ({ ...prev, caravana: lastRead, caravana_visual: visualAuto ? ultimos4(lastRead) : prev.caravana_visual }));
+      aplicarCaravana(lastRead);
       clearLastRead();
       setShowBLE(false);
     }
@@ -120,17 +121,34 @@ export default function RegistroAnimalScreen() {
     setErrors((prev) => ({ ...prev, [key]: undefined }));
   }
 
-  function onChangeCaravana(v) {
+  // Algunos lectores (p. ej. ALR300) agregan digitos extra al final.
+  // El numero ISO valido tiene 15 digitos: nos quedamos con los primeros 15.
+  function normalizar(v) {
+    const d = String(v || '').replace(/\D/g, '');
+    if (d.length > 15 && d.length < 30) {
+      return { valor: d.slice(0, 15), ajustado: true };
+    }
+    return { valor: v, ajustado: false };
+  }
+
+  function aplicarCaravana(v) {
+    const { valor, ajustado: aj } = normalizar(v);
+    setAjustado(aj);
     setForm((prev) => ({
       ...prev,
-      caravana: v,
-      caravana_visual: visualAuto ? ultimos4(v) : prev.caravana_visual,
+      caravana: valor,
+      caravana_visual: visualAuto ? ultimos4(valor) : prev.caravana_visual,
     }));
     setErrors((prev) => ({ ...prev, caravana: undefined }));
   }
 
+  function onChangeCaravana(v) {
+    aplicarCaravana(v);
+  }
+
   function usarUltimaLectura() {
     const ult = form.caravana.replace(/\D/g, '').slice(-15);
+    setAjustado(false);
     setForm((prev) => ({ ...prev, caravana: ult, caravana_visual: visualAuto ? ult.slice(-4) : prev.caravana_visual }));
   }
 
@@ -206,8 +224,9 @@ export default function RegistroAnimalScreen() {
   }
 
   const digitos = form.caravana.replace(/\D/g, '');
-  const dobleLectura = digitos.length > 15;
   const lecturaOk = digitos.length === 15;
+  const dobleLectura = digitos.length >= 30;   // dos lecturas pegadas
+  const largoRaro = digitos.length > 15 && digitos.length < 30;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -238,8 +257,16 @@ export default function RegistroAnimalScreen() {
               </TouchableOpacity>
             </View>
           )}
+          {largoRaro && (
+            <View style={styles.avisoDoble}>
+              <Text style={styles.avisoDobleText}>⚠️ Lectura de {digitos.length} dígitos (el ISO tiene 15)</Text>
+            </View>
+          )}
           {lecturaOk && (
-            <Text style={styles.lecturaOk}>✓ Caravana válida · visual: {ultimos4(form.caravana)}</Text>
+            <Text style={styles.lecturaOk}>
+              ✓ Caravana válida · visual: {ultimos4(form.caravana)}
+              {ajustado ? ' · ajustada (el lector mandó dígitos de más)' : ''}
+            </Text>
           )}
 
           <FormField label="Caravana visual (opcional)">
