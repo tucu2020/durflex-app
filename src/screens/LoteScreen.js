@@ -17,6 +17,17 @@ const CATEGORIAS = [
   { value: 'toro',       label: 'Toro' },
 ];
 const SEXOS = [{ value: 'macho', label: 'Macho' }, { value: 'hembra', label: 'Hembra' }];
+const RAZAS = [
+  'Aberdeen Angus','Hereford','Braford','Brangus','Holando Argentino',
+  'Limousin','Simmental','Shorthorn','Charolais','Otro',
+].map((r) => ({ value: r, label: r }));
+const MESES = [
+  { value: '01', label: 'Enero' }, { value: '02', label: 'Febrero' }, { value: '03', label: 'Marzo' },
+  { value: '04', label: 'Abril' }, { value: '05', label: 'Mayo' }, { value: '06', label: 'Junio' },
+  { value: '07', label: 'Julio' }, { value: '08', label: 'Agosto' }, { value: '09', label: 'Septiembre' },
+  { value: '10', label: 'Octubre' }, { value: '11', label: 'Noviembre' }, { value: '12', label: 'Diciembre' },
+];
+const ANIOS = [{ value: '2026', label: '2026' }, { value: '2025', label: '2025' }, { value: '2024', label: '2024' }, { value: '2023', label: '2023' }, { value: '2022', label: '2022' }, { value: '2021', label: '2021' }];
 
 // El ISO valido tiene 15 digitos. Algunos lectores (ALR300) agregan extras al final.
 function normalizar(v) {
@@ -35,7 +46,7 @@ export default function LoteScreen() {
   const [buffer, setBuffer]   = useState('');
   const [lista, setLista]     = useState([]);
   const [estabs, setEstabs]   = useState([]);
-  const [comun, setComun]     = useState({ establecimiento_id: '', categoria: '', sexo: '' });
+  const [comun, setComun]     = useState({ establecimiento_id: '', categoria: '', sexo: '', raza: '', mesNac: '', anioNac: '' });
   const [saving, setSaving]   = useState(false);
   const [mensaje, setMensaje] = useState(null);
   const [showBLE, setShowBLE] = useState(false);
@@ -142,9 +153,11 @@ export default function LoteScreen() {
           establecimiento_id: comun.establecimiento_id || null,
           peso: null, edad: null,
           categoria: comun.categoria,
-          estado_reproductivo: null, raza: null,
+          estado_reproductivo: null,
+          raza: comun.raza || null,
           sexo: comun.sexo,
-          fecha_nacimiento: null, observaciones: null,
+          fecha_nacimiento: (comun.anioNac && comun.mesNac) ? (comun.anioNac + '-' + comun.mesNac + '-01') : null,
+          observaciones: null,
           estado: 'ok',
         });
       }
@@ -278,6 +291,33 @@ export default function LoteScreen() {
                 onChange={(v) => setComun((p) => ({ ...p, sexo: v }))}
                 placeholder="Seleccionar sexo..."
               />
+              <Picker
+                label="Raza (para el TXT de SENASA)"
+                value={comun.raza}
+                options={RAZAS}
+                onChange={(v) => setComun((p) => ({ ...p, raza: v }))}
+                placeholder="Seleccionar raza..."
+              />
+              <View style={styles.mesAnioRow}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <Picker
+                    label="Mes nac."
+                    value={comun.mesNac}
+                    options={MESES}
+                    onChange={(v) => setComun((p) => ({ ...p, mesNac: v }))}
+                    placeholder="Mes..."
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Picker
+                    label="Año nac."
+                    value={comun.anioNac}
+                    options={ANIOS}
+                    onChange={(v) => setComun((p) => ({ ...p, anioNac: v }))}
+                    placeholder="Año..."
+                  />
+                </View>
+              </View>
               <Picker
                 label="Campo"
                 value={comun.establecimiento_id}
@@ -413,6 +453,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.border,
   },
   comunTitulo: { fontSize: 15, fontWeight: '800', color: Colors.text, marginBottom: 12 },
+  mesAnioRow:  { flexDirection: 'row' },
 
   saveBtn:     { backgroundColor: Colors.text, borderRadius: 12, paddingVertical: 15, alignItems: 'center', marginTop: 8 },
   saveBtnText: { color: Colors.primary, fontWeight: '800', fontSize: 16 },

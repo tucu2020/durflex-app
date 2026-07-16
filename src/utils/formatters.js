@@ -25,15 +25,39 @@ export function estadoLabel(estado) {
   return map[estado] || estado || '-';
 }
 
-// Genera línea formato SENASA/SIGbiotraza
+// ── Códigos de raza SIGSA / SENASA ──────────────────────────────
+// Confirmados desde el archivo de ejemplo (terneros_prueba_ALTA.txt):
+//   AA, BF, BG, H, L, CH.  Los marcados con "// por confirmar" son
+// tentativos: reemplazar con la tabla oficial de SENASA cuando esté.
+export const RAZA_CODIGO = {
+  'Aberdeen Angus':    'AA',
+  'Braford':           'BF',
+  'Brangus':           'BG',
+  'Hereford':          'H',
+  'Limousin':          'L',
+  'Charolais':         'CH',
+  'Holando Argentino': 'HA', // por confirmar
+  'Simmental':         'S',  // por confirmar
+  'Shorthorn':         'SH', // por confirmar
+  'Otro':              '',   // por confirmar
+};
+
+export function codigoRaza(raza) {
+  if (!raza) return '';
+  return RAZA_CODIGO[raza] ?? '';
+}
+
+// Genera una línea en el formato de importación SIGSA:
+//   CARAVANA-SEXO-RAZA-MM/AAAA
+// (15 dígitos)-(M|H|'')-(código de raza)-(mes/año de nacimiento)
 export function formatSenasaLine(animal) {
-  const codigo = animal.caravana || '';
+  const codigo = String(animal.caravana || '').replace(/\D/g, '').slice(0, 15);
   const sexo = animal.sexo === 'macho' ? 'M' : animal.sexo === 'hembra' ? 'H' : '';
-  const raza = (animal.raza || '').toUpperCase().replace(/\s+/g, '_');
-  const fechaNac = animal.fecha_nacimiento
-    ? animal.fecha_nacimiento.replace(/-/g, '')
-    : '';
-  return `${codigo}-${sexo}-${raza}-${fechaNac}`;
+  const raza = codigoRaza(animal.raza);
+  let mesAnio = '';
+  const m = String(animal.fecha_nacimiento || '').match(/^(\d{4})-(\d{2})/);
+  if (m) mesAnio = `${m[2]}/${m[1]}`;
+  return `${codigo}-${sexo}-${raza}-${mesAnio}`;
 }
 
 // Auto-formatea un RENSPA a NN.NNN.N.NNNNN/XX mientras se tipea.

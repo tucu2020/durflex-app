@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Alert,
   ActivityIndicator, SafeAreaView, ScrollView, Modal, FlatList,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -126,7 +127,7 @@ export default function ExportarScreen() {
       const animales = await getAnimalesFiltrados();
       if (!animales.length) { Alert.alert('Sin datos', 'No hay animales para exportar.'); return; }
       const fecha    = new Date().toISOString().split('T')[0];
-      const contenido = animales.map(formatSenasaLine).join(';') + '\n';
+      const contenido = animales.map(formatSenasaLine).join(';');
       const uri = `${FileSystem.documentDirectory}SENASA_${fecha}.txt`;
       await FileSystem.writeAsStringAsync(uri, contenido); // UTF-8 por defecto
       await Sharing.shareAsync(uri, { mimeType: 'text/plain', dialogTitle: 'Exportar SENASA', UTI: 'public.plain-text' });
@@ -400,7 +401,7 @@ export default function ExportarScreen() {
 
       {/* ── Modal nueva planilla IATF ─────────────────── */}
       <Modal visible={showNuevaIATF} animationType="slide" transparent>
-        <View style={styles.overlay}>
+        <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <SafeAreaView style={styles.sheet}>
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>Nueva planilla IATF</Text>
@@ -431,12 +432,12 @@ export default function ExportarScreen() {
               </TouchableOpacity>
             </View>
           </SafeAreaView>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Modal detalle planilla IATF ───────────────── */}
       <Modal visible={!!showDetalleIATF} animationType="slide" transparent>
-        <View style={styles.overlay}>
+        <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <SafeAreaView style={styles.sheet}>
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>{showDetalleIATF?.nombre}</Text>
@@ -482,7 +483,7 @@ export default function ExportarScreen() {
               </TouchableOpacity>
             </View>
           </SafeAreaView>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
