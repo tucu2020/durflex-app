@@ -292,7 +292,11 @@ export function useBLE() {
         try { dataSub.current?.remove?.(); } catch (e) {}
       });
     } catch (e) {
-      setError(`No se pudo conectar: ${e?.message ?? e}`);
+      const msg = String(e?.message ?? e);
+      const amigable = /read failed|socket|timeout|closed/i.test(msg)
+        ? 'No se pudo conectar. Revisá que el bastón esté encendido, en modo SPP y cerca. Probá de nuevo.'
+        : `No se pudo conectar. ${msg}`;
+      setError(amigable);
     } finally {
       connectingRef.current = false;
     }

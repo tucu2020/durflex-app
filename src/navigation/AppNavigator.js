@@ -44,6 +44,7 @@ export default function AppNavigator() {
       headerStyle:      { backgroundColor: Colors.header },
       headerTintColor:  Colors.headerTint,
       headerTitleStyle: { fontWeight: '700', color: Colors.headerTint },
+      headerTitleAlign: 'center',
       headerTitle:      () => <HeaderLogo />,
       headerRight:      () => <HamburgerBtn onPress={() => setMenuOpen(true)} />,
       headerBackTitle:  'Volver',
@@ -113,7 +114,7 @@ export default function AppNavigator() {
 }
 
 const styles = StyleSheet.create({
-  logo:          { height: 32, width: 120, resizeMode: 'contain' },
+  logo:          { height: 42, width: 158, resizeMode: 'contain' },
   hamburger:     { marginRight: 16, padding: 4 },
   hamburgerIcon: { fontSize: 22, color: Colors.headerTint },
 });

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   SafeAreaView, ScrollView, ActivityIndicator, Alert,
@@ -13,6 +13,11 @@ export default function DispositivosScreen() {
     startScan, stopScan, connectDevice, disconnect,
     clearLastRead, clearRawLog,
   } = useBLE();
+
+  const [showRaw, setShowRaw] = useState(false);
+
+  // Mostrar solo dispositivos con nombre (o emparejados): oculta el ruido de MACs sueltas.
+  const dispositivos = devices.filter((d) => d.bonded || (d.name && d.name !== d.id));
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -94,11 +99,11 @@ export default function DispositivosScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Dispositivos encontrados */}
-        {devices.length > 0 && (
+        {/* Dispositivos encontrados (solo con nombre / emparejados) */}
+        {dispositivos.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Dispositivos {devices.some((d) => d.bonded) ? '(★ emparejados)' : 'encontrados'}</Text>
-            {devices.map((d) => (
+            <Text style={styles.sectionLabel}>Dispositivos {dispositivos.some((d) => d.bonded) ? '(★ emparejados)' : 'encontrados'}</Text>
+            {dispositivos.map((d) => (
               <TouchableOpacity
                 key={d.id}
                 style={[styles.deviceCard, connected?.id === d.id && styles.deviceCardActive]}
@@ -121,35 +126,39 @@ export default function DispositivosScreen() {
           </View>
         )}
 
-        {/* Panel de datos crudos (depuración del bastón real) */}
+        {/* Datos técnicos (para soporte) - ocultos por defecto */}
         <View style={styles.section}>
-          <View style={styles.rawHeader}>
-            <Text style={styles.sectionLabel}>Datos crudos del bastón</Text>
-            {rawLog.length > 0 && (
-              <TouchableOpacity onPress={clearRawLog}>
-                <Text style={styles.rawClear}>Limpiar</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          <View style={styles.rawBox}>
-            {rawLog.length === 0 ? (
-              <Text style={styles.rawEmpty}>
-                Sin lecturas todavía. Conectá el bastón y pasá una caravana:
-                acá vas a ver, tal cual, lo que envía el lector.
-              </Text>
-            ) : (
-              rawLog.map((r, i) => (
-                <Text key={i} style={styles.rawLine} numberOfLines={2}>
-                  <Text style={styles.rawTime}>{r.t}  </Text>
-                  {JSON.stringify(r.texto)}
-                </Text>
-              ))
-            )}
-          </View>
-          {!!rawData && (
-            <Text style={styles.rawHint}>
-              Último dato: {JSON.stringify(rawData)}
+          <TouchableOpacity style={styles.rawToggle} onPress={() => setShowRaw((v) => !v)}>
+            <Text style={styles.rawToggleText}>
+              {showRaw ? '▾ Ocultar datos técnicos' : '▸ Datos técnicos (soporte)'}
             </Text>
+          </TouchableOpacity>
+          {showRaw && (
+            <>
+              <View style={styles.rawHeader}>
+                <Text style={styles.sectionLabel}>Datos crudos del bastón</Text>
+                {rawLog.length > 0 && (
+                  <TouchableOpacity onPress={clearRawLog}>
+                    <Text style={styles.rawClear}>Limpiar</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              <View style={styles.rawBox}>
+                {rawLog.length === 0 ? (
+                  <Text style={styles.rawEmpty}>
+                    Sin lecturas todavía. Sirve para diagnosticar un bastón nuevo:
+                    muestra, tal cual, lo que envía el lector.
+                  </Text>
+                ) : (
+                  rawLog.map((r, i) => (
+                    <Text key={i} style={styles.rawLine} numberOfLines={2}>
+                      <Text style={styles.rawTime}>{r.t}  </Text>
+                      {JSON.stringify(r.texto)}
+                    </Text>
+                  ))
+                )}
+              </View>
+            </>
           )}
         </View>
 
@@ -233,6 +242,8 @@ const styles = StyleSheet.create({
   connectedBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   conectarText:     { fontSize: 13, color: Colors.pendiente, fontWeight: '600' },
 
+  rawToggle: { paddingVertical: 8 },
+  rawToggleText: { fontSize: 12, color: Colors.textMuted, fontWeight: '700' },
   rawHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   rawClear:  { fontSize: 12, color: Colors.alerta, fontWeight: '700' },
   rawBox:    { backgroundColor: '#1E1E1E', borderRadius: 12, padding: 12, minHeight: 60 },

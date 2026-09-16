@@ -13,7 +13,7 @@ import {
 import { useBLE } from '../hooks/useBLE';
 import { Colors } from '../utils/colors';
 import FormField, { Input } from '../components/FormField';
-import { formatRenspa } from '../utils/formatters';
+import { formatRenspa, RAZAS_SENASA } from '../utils/formatters';
 import Picker from '../components/Picker';
 
 const MESES = [
@@ -36,10 +36,7 @@ const CATEGORIAS = [
 ];
 const SEXOS   = [{ value: 'macho', label: 'Macho' }, { value: 'hembra', label: 'Hembra' }];
 const ESTADOS = [{ value: 'ok', label: 'OK' }, { value: 'vacuna', label: 'Vacuna' }, { value: 'alerta', label: 'Alerta' }];
-const RAZAS   = [
-  'Aberdeen Angus','Hereford','Braford','Brangus','Holando Argentino',
-  'Limousin','Simmental','Shorthorn','Charolais','Otro',
-].map((r) => ({ value: r, label: r }));
+const RAZAS = RAZAS_SENASA.map((r) => ({ value: r, label: r }));
 
 const FORM_EMPTY = {
   caravana: '', caravana_visual: '', establecimiento_id: '', peso: '', edad: '',
@@ -113,7 +110,7 @@ export default function RegistroAnimalScreen() {
 
   async function cargarEstabs() {
     const rows = await getEstablecimientos();
-    setEstabs(rows.map((e) => ({ value: e.id, label: e.nombre })));
+    setEstabs(rows.map((e) => ({ value: e.id, label: e.nombre + (e.renspa ? '  ·  ' + e.renspa : '') })));
   }
 
   function set(key, value) {

@@ -8,6 +8,7 @@ import { useBLE } from '../hooks/useBLE';
 import { getEstablecimientos, insertAnimal, getAnimalByCaravana } from '../db/database';
 import { Colors } from '../utils/colors';
 import Picker from '../components/Picker';
+import { RAZAS_SENASA } from '../utils/formatters';
 
 const CATEGORIAS = [
   { value: 'ternero',    label: 'Ternero' },
@@ -17,10 +18,7 @@ const CATEGORIAS = [
   { value: 'toro',       label: 'Toro' },
 ];
 const SEXOS = [{ value: 'macho', label: 'Macho' }, { value: 'hembra', label: 'Hembra' }];
-const RAZAS = [
-  'Aberdeen Angus','Hereford','Braford','Brangus','Holando Argentino',
-  'Limousin','Simmental','Shorthorn','Charolais','Otro',
-].map((r) => ({ value: r, label: r }));
+const RAZAS = RAZAS_SENASA.map((r) => ({ value: r, label: r }));
 const MESES = [
   { value: '01', label: 'Enero' }, { value: '02', label: 'Febrero' }, { value: '03', label: 'Marzo' },
   { value: '04', label: 'Abril' }, { value: '05', label: 'Mayo' }, { value: '06', label: 'Junio' },
@@ -65,7 +63,7 @@ export default function LoteScreen() {
 
   useEffect(() => {
     getEstablecimientos().then((rows) =>
-      setEstabs(rows.map((e) => ({ value: e.id, label: e.nombre })))
+      setEstabs(rows.map((e) => ({ value: e.id, label: e.nombre + (e.renspa ? '  ·  ' + e.renspa : '') })))
     );
     return () => clearTimeout(timerRef.current);
   }, []);

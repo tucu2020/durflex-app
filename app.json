@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ganadoapp.app",
+      "bundleIdentifier": "com.durflex.app",
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "Durflex usa Bluetooth para conectar el bastón RFID.",
         "NSBluetoothPeripheralUsageDescription": "Durflex usa Bluetooth para conectar el bastón RFID."
@@ -26,17 +26,23 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FEEF20"
       },
-      "package": "com.ganadoapp.app",
+      "package": "com.durflex.app",
       "permissions": [
         "BLUETOOTH",
         "BLUETOOTH_ADMIN",
         "BLUETOOTH_CONNECT",
         "BLUETOOTH_SCAN",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION"
+        "ACCESS_COARSE_LOCATION"
       ],
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "blockedPermissions": [
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.CAMERA"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -44,29 +50,7 @@
     "plugins": [
       "expo-sqlite",
       "@react-native-community/datetimepicker",
-      "expo-web-browser",
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "Durflex accede a tus fotos para adjuntar imágenes a los animales.",
-          "cameraPermission": "Durflex usa la cámara para fotografiar animales."
-        }
-      ],
-      [
-        "expo-location",
-        {
-          "locationAlwaysAndWhenInUsePermission": "Durflex captura la ubicación GPS al registrar animales.",
-          "locationWhenInUsePermission": "Durflex captura la ubicación GPS al registrar animales."
-        }
-      ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/icon.png",
-          "color": "#F5E100",
-          "sounds": []
-        }
-      ]
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {

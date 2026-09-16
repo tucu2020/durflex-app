@@ -15,10 +15,38 @@ export async function getDatabase() {
 async function migrate(db) {
   try {
     const cols = await db.getAllAsync('PRAGMA table_info(animales)');
-    if (!cols.some((c) => c.name === 'caravana_visual')) {
-      await db.execAsync('ALTER TABLE animales ADD COLUMN caravana_visual TEXT');
-    }
+    const falta = (n) => !cols.some((c) => c.name === n);
+    if (falta('caravana_visual')) await db.execAsync('ALTER TABLE animales ADD COLUMN caravana_visual TEXT');
+    if (falta('uid'))            await db.execAsync('ALTER TABLE animales ADD COLUMN uid TEXT');
+    if (falta('sync_ms'))        await db.execAsync('ALTER TABLE animales ADD COLUMN sync_ms INTEGER DEFAULT 0');
   } catch (e) { /* si ya existe u otro caso, seguimos */ }
+
+  try {
+    const ce = await db.getAllAsync('PRAGMA table_info(establecimientos)');
+    const faltaE = (n) => !ce.some((c) => c.name === n);
+    if (faltaE('uid'))     await db.execAsync('ALTER TABLE establecimientos ADD COLUMN uid TEXT');
+    if (faltaE('sync_ms')) await db.execAsync('ALTER TABLE establecimientos ADD COLUMN sync_ms INTEGER DEFAULT 0');
+  } catch (e) { }
+
+  try {
+    // Registro de borrados, para que la sincronizacion no los reviva.
+    await db.execAsync(
+      'CREATE TABLE IF NOT EXISTS borrados (uid TEXT PRIMARY KEY, tabla TEXT, ms INTEGER)'
+    );
+    // Completa uid/sync_ms en los registros que ya existian.
+    await db.runAsync("UPDATE animales SET uid = lower(hex(randomblob(16))) WHERE uid IS NULL OR uid = ''");
+    await db.runAsync("UPDATE establecimientos SET uid = lower(hex(randomblob(16))) WHERE uid IS NULL OR uid = ''");
+    await db.runAsync('UPDATE animales SET sync_ms = 1 WHERE sync_ms IS NULL OR sync_ms = 0');
+    await db.runAsync('UPDATE establecimientos SET sync_ms = 1 WHERE sync_ms IS NULL OR sync_ms = 0');
+  } catch (e) { }
+}
+
+// Identificador unico generado en el telefono (para sincronizar sin choques).
+export function nuevoUid() {
+  const h = '0123456789abcdef';
+  let s = '';
+  for (let i = 0; i < 32; i++) s += h[Math.floor(Math.random() * 16)];
+  return s;
 }
 
 async function initDatabase(db) {
@@ -100,12 +128,13 @@ export async function insertAnimal(animal) {
   const db = await getDatabase();
   const result = await db.runAsync(
     `INSERT INTO animales (caravana, caravana_visual, establecimiento_id, peso, edad, categoria,
-      estado_reproductivo, raza, sexo, fecha_nacimiento, observaciones, estado)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      estado_reproductivo, raza, sexo, fecha_nacimiento, observaciones, estado, uid, sync_ms)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       animal.caravana, animal.caravana_visual ?? null, animal.establecimiento_id, animal.peso, animal.edad,
       animal.categoria, animal.estado_reproductivo, animal.raza, animal.sexo,
       animal.fecha_nacimiento, animal.observaciones, animal.estado || 'ok',
+      animal.uid || nuevoUid(), Date.now(),
     ]
   );
   return result.lastInsertRowId;
@@ -116,11 +145,11 @@ export async function updateAnimal(id, animal) {
   await db.runAsync(
     `UPDATE animales SET caravana=?, caravana_visual=?, establecimiento_id=?, peso=?, edad=?, categoria=?,
       estado_reproductivo=?, raza=?, sexo=?, fecha_nacimiento=?, observaciones=?,
-      estado=?, updated_at=datetime('now'), synced=0 WHERE id=?`,
+      estado=?, updated_at=datetime('now'), synced=0, sync_ms=? WHERE id=?`,
     [
       animal.caravana, animal.caravana_visual ?? null, animal.establecimiento_id, animal.peso, animal.edad,
       animal.categoria, animal.estado_reproductivo, animal.raza, animal.sexo,
-      animal.fecha_nacimiento, animal.observaciones, animal.estado || 'ok', id,
+      animal.fecha_nacimiento, animal.observaciones, animal.estado || 'ok', Date.now(), id,
     ]
   );
 }
@@ -165,6 +194,15 @@ export async function getAnimalByCaravana(caravana, excludeId = null) {
 
 export async function deleteAnimal(id) {
   const db = await getDatabase();
+  try {
+    const row = await db.getFirstAsync('SELECT uid FROM animales WHERE id = ?', [id]);
+    if (row && row.uid) {
+      await db.runAsync(
+        'INSERT OR REPLACE INTO borrados (uid, tabla, ms) VALUES (?, ?, ?)',
+        [row.uid, 'animales', Date.now()]
+      );
+    }
+  } catch (e) { }
   await db.runAsync('DELETE FROM animales WHERE id = ?', [id]);
 }
 
@@ -183,10 +221,11 @@ export async function getUltimosAnimales(limit = 10) {
 export async function insertEstablecimiento(est) {
   const db = await getDatabase();
   const result = await db.runAsync(
-    `INSERT INTO establecimientos (nombre, renspa, cuig, provincia, partido, localidad, propietario, telefono)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO establecimientos (nombre, renspa, cuig, provincia, partido, localidad, propietario, telefono, uid, sync_ms)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [est.nombre, est.renspa ?? null, est.cuig ?? null, est.provincia ?? null,
-     est.partido ?? null, est.localidad ?? null, est.propietario ?? null, est.telefono ?? null]
+     est.partido ?? null, est.localidad ?? null, est.propietario ?? null, est.telefono ?? null,
+     est.uid || nuevoUid(), Date.now()]
   );
   return result.lastInsertRowId;
 }
@@ -195,9 +234,10 @@ export async function updateEstablecimiento(id, est) {
   const db = await getDatabase();
   await db.runAsync(
     `UPDATE establecimientos SET nombre=?, renspa=?, cuig=?, provincia=?, partido=?,
-      localidad=?, propietario=?, telefono=?, updated_at=datetime('now'), synced=0 WHERE id=?`,
+      localidad=?, propietario=?, telefono=?, updated_at=datetime('now'), synced=0, sync_ms=? WHERE id=?`,
     [est.nombre, est.renspa ?? null, est.cuig ?? null, est.provincia ?? null,
-     est.partido ?? null, est.localidad ?? null, est.propietario ?? null, est.telefono ?? null, id]
+     est.partido ?? null, est.localidad ?? null, est.propietario ?? null, est.telefono ?? null,
+     Date.now(), id]
   );
 }
 
@@ -220,6 +260,15 @@ export async function getEstablecimientoById(id) {
 
 export async function deleteEstablecimiento(id) {
   const db = await getDatabase();
+  try {
+    const row = await db.getFirstAsync('SELECT uid FROM establecimientos WHERE id = ?', [id]);
+    if (row && row.uid) {
+      await db.runAsync(
+        'INSERT OR REPLACE INTO borrados (uid, tabla, ms) VALUES (?, ?, ?)',
+        [row.uid, 'establecimientos', Date.now()]
+      );
+    }
+  } catch (e) { }
   await db.runAsync('DELETE FROM establecimientos WHERE id = ?', [id]);
 }
 

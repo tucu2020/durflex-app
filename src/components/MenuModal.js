@@ -6,9 +6,10 @@ import {
 import { Colors } from '../utils/colors';
 import { getSetting, setSetting } from '../db/database';
 import { formatRenspa } from '../utils/formatters';
+import CuentaScreen from '../screens/CuentaScreen';
 
 export default function MenuModal({ visible, onClose }) {
-  const [tab, setTab]                 = useState('menu'); // 'menu' | 'config'
+  const [tab, setTab]                 = useState('menu'); // 'menu' | 'config' | 'cuenta'
   const [operatorName, setOperName]   = useState('');
   const [defaultCUIG, setDefaultCUIG] = useState('');
   const [saving, setSaving]           = useState(false);
@@ -30,7 +31,7 @@ export default function MenuModal({ visible, onClose }) {
   }
 
   function abrirWhatsApp() {
-    Linking.openURL('https://wa.me/5491100000000?text=Hola%2C%20necesito%20soporte%20con%20Durflex').catch(() =>
+    Linking.openURL('https://wa.me/5491162424700?text=Hola%2C%20necesito%20soporte%20con%20Durflex').catch(() =>
       Alert.alert('Error', 'No se pudo abrir WhatsApp')
     );
   }
@@ -47,12 +48,14 @@ export default function MenuModal({ visible, onClose }) {
       <SafeAreaView style={styles.drawer} pointerEvents="box-none">
         {/* Header */}
         <View style={styles.header}>
-          {tab === 'config' ? (
+          {tab !== 'menu' ? (
             <>
               <TouchableOpacity onPress={() => setTab('menu')} style={styles.backBtn}>
                 <Text style={styles.backBtnText}>← Volver</Text>
               </TouchableOpacity>
-              <Text style={styles.headerTitle}>Configuración</Text>
+              <Text style={styles.headerTitle}>
+                {tab === 'cuenta' ? 'Mi cuenta' : 'Configuración'}
+              </Text>
             </>
           ) : (
             <>
@@ -67,18 +70,19 @@ export default function MenuModal({ visible, onClose }) {
           )}
         </View>
 
+        {tab === 'cuenta' ? (
+          <CuentaScreen />
+        ) : (
         <ScrollView>
           {tab === 'menu' ? (
             <View style={styles.menuItems}>
 
               {/* Sync / Login */}
-              <TouchableOpacity style={styles.item} onPress={() =>
-                Alert.alert('Sync en la nube', 'La sincronización en la nube estará disponible próximamente.')
-              }>
+              <TouchableOpacity style={styles.item} onPress={() => setTab('cuenta')}>
                 <Text style={styles.itemIcon}>☁️</Text>
                 <View style={styles.itemContent}>
-                  <Text style={styles.itemTitle}>Iniciar sesión</Text>
-                  <Text style={styles.itemSub}>Sync automático en la nube</Text>
+                  <Text style={styles.itemTitle}>Mi cuenta</Text>
+                  <Text style={styles.itemSub}>Copia de seguridad en la nube</Text>
                 </View>
                 <Text style={styles.itemArrow}>›</Text>
               </TouchableOpacity>
@@ -102,7 +106,7 @@ export default function MenuModal({ visible, onClose }) {
                 <Text style={styles.itemIcon}>💬</Text>
                 <View style={styles.itemContent}>
                   <Text style={styles.itemTitle}>WhatsApp soporte</Text>
-                  <Text style={styles.itemSub}>+54 9 11 0000-0000</Text>
+                  <Text style={styles.itemSub}>+54 9 11 6242-4700</Text>
                 </View>
                 <Text style={styles.itemArrow}>›</Text>
               </TouchableOpacity>
@@ -152,6 +156,7 @@ export default function MenuModal({ visible, onClose }) {
             </View>
           )}
         </ScrollView>
+        )}
       </SafeAreaView>
     </Modal>
   );

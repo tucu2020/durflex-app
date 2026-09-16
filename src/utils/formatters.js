@@ -25,26 +25,38 @@ export function estadoLabel(estado) {
   return map[estado] || estado || '-';
 }
 
-// ── Códigos de raza SIGSA / SENASA ──────────────────────────────
-// Confirmados desde el archivo de ejemplo (terneros_prueba_ALTA.txt):
-//   AA, BF, BG, H, L, CH.  Los marcados con "// por confirmar" son
-// tentativos: reemplazar con la tabla oficial de SENASA cuando esté.
+// ── Razas bovinas SENASA (tal cual el desplegable de SIGbiotraza) ──
+export const RAZAS_SENASA = [
+  'ABERDEEN ANGUS', 'BELTED GALLAWAY', 'BOSMARA', 'BRAFORD', 'BRAHMAN',
+  'BRANGUS', 'CHAROLAIS', 'CRIOLLA', 'FLECKIEH-SIMENTAL', 'GANADO CRUZA',
+  'HEREFORD', 'HOLANDO ARGENTINO', 'JERSEY', 'KIWI', 'LIMANGUS',
+  'LIMOUSINE', 'MURRAY GREY', 'POLLED HEREFORD', 'SAN IGNACIO', 'SANTA GERTRUDIS',
+  'SENANGUS', 'SENEFORD', 'SENEPOL', 'SHORTHORN-POLLED', 'SHORTHORN-LINCOLN RED',
+  'SUECA ROJA Y BLANCA', 'TULI', 'WAGYU', 'OTRA RAZA BOVINA',
+];
+
+// ── Códigos de raza para el TXT de SIGSA ────────────────────────
+// Confirmados desde el archivo de referencia (terneros_prueba_ALTA.txt):
+//   AA, BF, BG, H, L(imousine), CH.  El resto: POR CONFIRMAR con una
+// prueba real de carga en SIGSA. Mientras no haya código, se usa el
+// nombre completo como respaldo.
 export const RAZA_CODIGO = {
-  'Aberdeen Angus':    'AA',
-  'Braford':           'BF',
-  'Brangus':           'BG',
-  'Hereford':          'H',
-  'Limousin':          'L',
-  'Charolais':         'CH',
-  'Holando Argentino': 'HA', // por confirmar
-  'Simmental':         'S',  // por confirmar
-  'Shorthorn':         'SH', // por confirmar
-  'Otro':              '',   // por confirmar
+  'ABERDEEN ANGUS': 'AA',
+  'BRAFORD':        'BF',
+  'BRANGUS':        'BG',
+  'HEREFORD':       'H',
+  'LIMOUSINE':      'L',
+  'CHAROLAIS':      'CH',
 };
+
+// true = TXT con código (AA...) ; false = TXT con nombre completo.
+// Se define tras la prueba real de carga en SIGSA.
+export const RAZA_TXT_CODIGO = true;
 
 export function codigoRaza(raza) {
   if (!raza) return '';
-  return RAZA_CODIGO[raza] ?? '';
+  if (RAZA_TXT_CODIGO) return RAZA_CODIGO[raza] ?? raza; // código, o nombre si falta
+  return raza;
 }
 
 // Genera una línea en el formato de importación SIGSA:

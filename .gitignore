@@ -25,3 +25,9 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+*.aab
+servidor/
+panel_web/
+play/
+Capturas/
+outputs_tmp_sheet.png

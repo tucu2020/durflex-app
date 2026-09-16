@@ -69,7 +69,7 @@ export default function ExportarScreen() {
   }
 
   const estOptions = [{ value: '', label: 'Todos los campos' },
-    ...establecimientos.map((e) => ({ value: e.id, label: e.nombre }))];
+    ...establecimientos.map((e) => ({ value: e.id, label: e.nombre + (e.renspa ? '  ·  ' + e.renspa : '') }))];
 
   async function getAnimalesFiltrados() {
     return getAnimales(filtroEstId || null);
