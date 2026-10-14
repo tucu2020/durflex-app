@@ -119,6 +119,30 @@ async function initDatabase(db) {
     CREATE INDEX IF NOT EXISTS idx_animales_establecimiento ON animales(establecimiento_id);
     CREATE INDEX IF NOT EXISTS idx_animales_caravana ON animales(caravana);
     CREATE INDEX IF NOT EXISTS idx_animales_synced ON animales(synced);
+        CREATE TABLE IF NOT EXISTS toros (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre TEXT NOT NULL UNIQUE
+    );
+
+    CREATE TABLE IF NOT EXISTS planillas_insem (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre TEXT NOT NULL,
+      establecimiento_id INTEGER,
+      fecha TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS insem_registros (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      planilla_id INTEGER NOT NULL,
+      caravana TEXT NOT NULL,
+      caravana_visual TEXT,
+      categoria TEXT,
+      semen TEXT,
+      estado_corporal TEXT,
+      celo TEXT,
+      observaciones TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
   `);
 }
 
@@ -429,4 +453,66 @@ export async function getAnimalesByFecha(fecha) {
      ORDER BY a.created_at`,
     [fecha]
   );
+}
+
+// ── Inseminación / IATF ───────────────────────────────────
+export async function getToros() {
+  const db = await getDatabase();
+  return await db.getAllAsync('SELECT * FROM toros ORDER BY nombre');
+}
+
+export async function insertToro(nombre) {
+  const db = await getDatabase();
+  try {
+    await db.runAsync('INSERT OR IGNORE INTO toros (nombre) VALUES (?)', [nombre.trim()]);
+  } catch (e) {}
+}
+
+export async function crearPlanillaInsem({ nombre, establecimiento_id }) {
+  const db = await getDatabase();
+  const r = await db.runAsync(
+    'INSERT INTO planillas_insem (nombre, establecimiento_id) VALUES (?, ?)',
+    [nombre, establecimiento_id ?? null]
+  );
+  return r.lastInsertRowId;
+}
+
+export async function getPlanillasInsem() {
+  const db = await getDatabase();
+  return await db.getAllAsync(
+    `SELECT p.*, e.nombre AS establecimiento_nombre,
+       (SELECT COUNT(*) FROM insem_registros r WHERE r.planilla_id = p.id) AS total
+     FROM planillas_insem p
+     LEFT JOIN establecimientos e ON e.id = p.establecimiento_id
+     ORDER BY p.id DESC`
+  );
+}
+
+export async function deletePlanillaInsem(id) {
+  const db = await getDatabase();
+  await db.runAsync('DELETE FROM planillas_insem WHERE id = ?', [id]);
+}
+
+export async function insertInsemRegistro(planillaId, reg) {
+  const db = await getDatabase();
+  const r = await db.runAsync(
+    `INSERT INTO insem_registros
+      (planilla_id, caravana, caravana_visual, categoria, semen, estado_corporal, celo, observaciones)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [planillaId, reg.caravana, reg.caravana_visual ?? null, reg.categoria ?? null,
+     reg.semen ?? null, reg.estado_corporal ?? null, reg.celo ?? null, reg.observaciones ?? null]
+  );
+  return r.lastInsertRowId;
+}
+
+export async function getInsemRegistros(planillaId) {
+  const db = await getDatabase();
+  return await db.getAllAsync(
+    'SELECT * FROM insem_registros WHERE planilla_id = ? ORDER BY id DESC', [planillaId]
+  );
+}
+
+export async function deleteInsemRegistro(id) {
+  const db = await getDatabase();
+  await db.runAsync('DELETE FROM insem_registros WHERE id = ?', [id]);
 }

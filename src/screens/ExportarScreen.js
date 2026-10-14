@@ -4,7 +4,7 @@ import {
   ActivityIndicator, SafeAreaView, ScrollView, Modal, FlatList,
   KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import {
@@ -20,7 +20,6 @@ import Picker from '../components/Picker';
 
 // ── helpers Excel ─────────────────────────────────────────────
 
-// Convierte array de objetos a AOA (array of arrays) para aoa_to_sheet
 function toAOA(objects) {
   if (!objects.length) return [[]];
   const keys = Object.keys(objects[0]);
@@ -37,7 +36,6 @@ function makeWb(sheets) {
 
 async function compartirXlsx(wbout, nombre) {
   const uri = `${FileSystem.documentDirectory}${nombre}.xlsx`;
-  // Usar string 'base64' directamente — FileSystem.EncodingType puede ser undefined en algunas versiones
   await FileSystem.writeAsStringAsync(uri, wbout, { encoding: 'base64' });
   await Sharing.shareAsync(uri, {
     mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -50,6 +48,7 @@ async function compartirXlsx(wbout, nombre) {
 // ── Componente principal ──────────────────────────────────────
 
 export default function ExportarScreen() {
+  const navigation = useNavigation();
   const [loading, setLoading]               = useState(null);
   const [establecimientos, setEstabs]       = useState([]);
   const [filtroEstId, setFiltroEstId]       = useState('');
@@ -87,7 +86,6 @@ export default function ExportarScreen() {
       const wbout = makeWb([
         {
           name: 'Animales',
-
           data: animales.map((a) => ({
             'Caravana': a.caravana,
             'Caravana visual': a.caravana_visual || '',
@@ -129,7 +127,7 @@ export default function ExportarScreen() {
       const fecha    = new Date().toISOString().split('T')[0];
       const contenido = animales.map(formatSenasaLine).join(';');
       const uri = `${FileSystem.documentDirectory}SENASA_${fecha}.txt`;
-      await FileSystem.writeAsStringAsync(uri, contenido); // UTF-8 por defecto
+      await FileSystem.writeAsStringAsync(uri, contenido);
       await Sharing.shareAsync(uri, { mimeType: 'text/plain', dialogTitle: 'Exportar SENASA', UTI: 'public.plain-text' });
     } catch (e) { Alert.alert('Error', e.message); }
     finally { setLoading(null); }
@@ -320,6 +318,17 @@ export default function ExportarScreen() {
         <ExportCard icon="📋" title="SENASA / SIGbiotraza" loadKey="senasa"
           desc={`Formato TXT: CODIGO-SEXO-RAZA-FECHANAC;...`}
           onPress={exportarSenasa} />
+
+        {/* ── Inseminación / IATF (captura en manga) ── */}
+        <Text style={styles.sectionTitle}>Inseminación</Text>
+        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Inseminacion')}>
+          <View style={styles.cardIcon}><Text style={styles.iconText}>🐄</Text></View>
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle}>Planilla de inseminación / IATF</Text>
+            <Text style={styles.cardDesc}>Cargá en la manga con el bastón: caravana, categoría, semen, estado corporal y celo. Exportá a Excel.</Text>
+          </View>
+          <Text style={{ fontSize: 24, color: Colors.textMuted, marginLeft: 6 }}>›</Text>
+        </TouchableOpacity>
 
         {/* ── Planillas de trabajo ── */}
         <Text style={styles.sectionTitle}>Planillas de trabajo</Text>

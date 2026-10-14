@@ -3,6 +3,7 @@ import { Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import InicioScreen          from '../screens/InicioScreen';
 import AnimalesScreen        from '../screens/AnimalesScreen';
@@ -12,6 +13,7 @@ import LoteScreen           from '../screens/LoteScreen';
 import EstablecimientosScreen from '../screens/EstablecimientosScreen';
 import ExportarScreen        from '../screens/ExportarScreen';
 import DispositivosScreen    from '../screens/DispositivosScreen';
+import InseminacionScreen    from '../screens/InseminacionScreen';
 import MenuModal             from '../components/MenuModal';
 import { Colors }            from '../utils/colors';
 
@@ -37,7 +39,17 @@ const TAB_ICONS = {
 };
 
 export default function AppNavigator() {
+  return (
+    <SafeAreaProvider>
+      <AppNavigatorInner />
+    </SafeAreaProvider>
+  );
+}
+
+function AppNavigatorInner() {
   const [menuOpen, setMenuOpen] = useState(false);
+  // Espacio que ocupan los botones de navegación de Android (0 si usa gestos)
+  const insets = useSafeAreaInsets();
 
   function headerOptions(overrides = {}) {
     return {
@@ -78,6 +90,19 @@ export default function AppNavigator() {
     );
   }
 
+  function ExportarStack() {
+    return (
+      <Stack.Navigator screenOptions={headerOptions()}>
+        <Stack.Screen name="ExportarMain" component={ExportarScreen} />
+        <Stack.Screen
+          name="Inseminacion"
+          component={InseminacionScreen}
+          options={headerOptions({ headerTitle: 'Inseminación', headerTitleStyle: { fontWeight: '700', color: Colors.headerTint } })}
+        />
+      </Stack.Navigator>
+    );
+  }
+
   const tabScreenOptions = ({ route }) => ({
     tabBarIcon: ({ focused }) => (
       <Text style={{ fontSize: focused ? 22 : 20, opacity: focused ? 1 : 0.6 }}>
@@ -89,8 +114,8 @@ export default function AppNavigator() {
     tabBarStyle: {
       backgroundColor: Colors.tabBar,
       borderTopColor:  Colors.border,
-      paddingBottom:   4,
-      height:          60,
+      paddingBottom:   4 + insets.bottom,
+      height:          60 + insets.bottom,
     },
     tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
     ...headerOptions(),
@@ -103,7 +128,7 @@ export default function AppNavigator() {
           <Tab.Screen name="Inicio"           component={InicioScreen} />
           <Tab.Screen name="Animales"         component={AnimalesStack} options={{ headerShown: false }} />
           <Tab.Screen name="Establecimientos" component={EstablecimientosScreen} options={{ tabBarLabel: 'Campo' }} />
-          <Tab.Screen name="Exportar"         component={ExportarScreen} />
+          <Tab.Screen name="Exportar"         component={ExportarStack} options={{ headerShown: false }} />
           <Tab.Screen name="Dispositivos"     component={DispositivosScreen} />
         </Tab.Navigator>
       </NavigationContainer>
