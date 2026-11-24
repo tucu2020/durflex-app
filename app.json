@@ -14,11 +14,12 @@
       "backgroundColor": "#FEEF20"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.durflex.app",
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "Durflex usa Bluetooth para conectar el bastón RFID.",
-        "NSBluetoothPeripheralUsageDescription": "Durflex usa Bluetooth para conectar el bastón RFID."
+        "NSBluetoothPeripheralUsageDescription": "Durflex usa Bluetooth para conectar el bastón RFID.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

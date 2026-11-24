@@ -6,6 +6,7 @@ import {
 import { Colors } from '../utils/colors';
 import {
   registrar, iniciarSesion, cerrarSesion, getUsuarioGuardado, estaLogueado,
+  eliminarCuenta,
 } from '../api/client';
 import { sincronizar, hayPendientes, ultimaSincronizacion } from '../api/sync';
 
@@ -25,6 +26,8 @@ export default function CuentaScreen() {
   const [ocupado, setOcupado]     = useState(false);
   const [pendientes, setPendientes] = useState(0);
   const [ultima, setUltima]       = useState('');
+  const [confirmarBorrado, setConfirmarBorrado] = useState(false);
+  const [passBorrar, setPassBorrar] = useState('');
 
   const refrescar = useCallback(async () => {
     setCargando(true);
@@ -73,6 +76,34 @@ export default function CuentaScreen() {
         onPress: async () => { await cerrarSesion(); setUsuario(null); },
       },
     ]);
+  }
+
+  async function eliminar() {
+    if (!passBorrar) { Alert.alert('Falta la contraseña', 'Ingresá tu contraseña para confirmar.'); return; }
+    Alert.alert(
+      'Eliminar cuenta',
+      'Esto borra tu cuenta y todos tus datos de la nube de forma permanente. Esta acción no se puede deshacer. ¿Continuar?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar definitivamente', style: 'destructive',
+          onPress: async () => {
+            setOcupado(true);
+            try {
+              await eliminarCuenta({ password: passBorrar });
+              setUsuario(null);
+              setConfirmarBorrado(false);
+              setPassBorrar('');
+              Alert.alert('Cuenta eliminada', 'Tu cuenta y tus datos en la nube se borraron. Los datos que tengas en este teléfono siguen disponibles sin cuenta.');
+            } catch (e) {
+              Alert.alert('No se pudo eliminar', e.message);
+            } finally {
+              setOcupado(false);
+            }
+          },
+        },
+      ],
+    );
   }
 
   async function sync() {
@@ -146,6 +177,50 @@ export default function CuentaScreen() {
           <TouchableOpacity style={styles.botonSalir} onPress={salir}>
             <Text style={styles.botonSalirTexto}>Cerrar sesión</Text>
           </TouchableOpacity>
+
+          <View style={styles.cardPeligro}>
+            <Text style={styles.tituloPeligro}>Eliminar cuenta</Text>
+            <Text style={styles.ayuda}>
+              Borra tu cuenta y todos tus datos de la nube de forma permanente.
+              No se puede deshacer. Los datos de este teléfono no se borran.
+            </Text>
+
+            {!confirmarBorrado ? (
+              <TouchableOpacity
+                style={styles.botonPeligro}
+                onPress={() => setConfirmarBorrado(true)}
+              >
+                <Text style={styles.botonPeligroTexto}>Eliminar mi cuenta</Text>
+              </TouchableOpacity>
+            ) : (
+              <>
+                <Text style={styles.label}>Ingresá tu contraseña para confirmar</Text>
+                <TextInput
+                  style={styles.input}
+                  value={passBorrar}
+                  onChangeText={setPassBorrar}
+                  placeholder="Tu contraseña"
+                  secureTextEntry
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  style={[styles.botonPeligro, ocupado && styles.botonOff]}
+                  onPress={eliminar}
+                  disabled={ocupado}
+                >
+                  {ocupado
+                    ? <ActivityIndicator color="#FFF" />
+                    : <Text style={styles.botonPeligroTexto}>Eliminar definitivamente</Text>}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.cambiar}
+                  onPress={() => { setConfirmarBorrado(false); setPassBorrar(''); }}
+                >
+                  <Text style={styles.cambiarTexto}>Cancelar</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
         </ScrollView>
       </SafeAreaView>
     );
@@ -280,4 +355,15 @@ const styles = StyleSheet.create({
 
   ayuda: { fontSize: 13, color: Colors.textMuted, lineHeight: 19, marginTop: 10 },
   nota:  { fontSize: 12, color: Colors.textMuted, textAlign: 'center', paddingHorizontal: 20, lineHeight: 18 },
+
+  cardPeligro: {
+    backgroundColor: Colors.surface, borderRadius: 14, padding: 18,
+    marginTop: 8, marginBottom: 24, borderWidth: 1, borderColor: '#E0A0A0',
+  },
+  tituloPeligro: { fontSize: 16, fontWeight: '700', color: '#C0392B', marginBottom: 4 },
+  botonPeligro: {
+    backgroundColor: '#C0392B', borderRadius: 12,
+    paddingVertical: 14, alignItems: 'center', marginTop: 14,
+  },
+  botonPeligroTexto: { fontSize: 15, fontWeight: '700', color: '#FFF' },
 });

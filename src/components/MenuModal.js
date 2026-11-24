@@ -1,12 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, Modal, TouchableOpacity,
-  SafeAreaView, Linking, TextInput, ScrollView, Alert,
+  SafeAreaView, Linking, TextInput, ScrollView, Alert, Image,
 } from 'react-native';
 import { Colors } from '../utils/colors';
 import { getSetting, setSetting } from '../db/database';
 import { formatRenspa } from '../utils/formatters';
 import CuentaScreen from '../screens/CuentaScreen';
+
+const LOGO = require('../../assets/logo-header.png');
+
+function Item({ icon, title, sub, onPress }) {
+  return (
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
+      <View style={styles.iconBox}><Text style={styles.icon}>{icon}</Text></View>
+      <View style={styles.itemContent}>
+        <Text style={styles.itemTitle}>{title}</Text>
+        {!!sub && <Text style={styles.itemSub}>{sub}</Text>}
+      </View>
+      <Text style={styles.chevron}>›</Text>
+    </TouchableOpacity>
+  );
+}
 
 export default function MenuModal({ visible, onClose }) {
   const [tab, setTab]                 = useState('menu'); // 'menu' | 'config' | 'cuenta'
@@ -45,90 +60,50 @@ export default function MenuModal({ visible, onClose }) {
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
-      <SafeAreaView style={styles.drawer} pointerEvents="box-none">
-        {/* Header */}
-        <View style={styles.header}>
+      <View style={styles.drawer}>
+        {/* Header oscuro con logo */}
+        <SafeAreaView style={styles.headerSafe}>
           {tab !== 'menu' ? (
-            <>
-              <TouchableOpacity onPress={() => setTab('menu')} style={styles.backBtn}>
-                <Text style={styles.backBtnText}>← Volver</Text>
+            <View style={styles.subHeader}>
+              <TouchableOpacity onPress={() => setTab('menu')} style={styles.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={styles.backBtnText}>‹ Volver</Text>
               </TouchableOpacity>
               <Text style={styles.headerTitle}>
                 {tab === 'cuenta' ? 'Mi cuenta' : 'Configuración'}
               </Text>
-            </>
-          ) : (
-            <>
-              <View style={styles.brand}>
-                <Text style={styles.brandName}>Durflex</Text>
-                <Text style={styles.brandSub}>Registro ganadero argentino</Text>
-              </View>
-              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                <Text style={styles.closeBtnText}>✕</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-
-        {tab === 'cuenta' ? (
-          <CuentaScreen />
-        ) : (
-        <ScrollView>
-          {tab === 'menu' ? (
-            <View style={styles.menuItems}>
-
-              {/* Sync / Login */}
-              <TouchableOpacity style={styles.item} onPress={() => setTab('cuenta')}>
-                <Text style={styles.itemIcon}>☁️</Text>
-                <View style={styles.itemContent}>
-                  <Text style={styles.itemTitle}>Mi cuenta</Text>
-                  <Text style={styles.itemSub}>Copia de seguridad en la nube</Text>
-                </View>
-                <Text style={styles.itemArrow}>›</Text>
-              </TouchableOpacity>
-
-              <View style={styles.divider} />
-
-              {/* Configuración */}
-              <TouchableOpacity style={styles.item} onPress={() => setTab('config')}>
-                <Text style={styles.itemIcon}>⚙️</Text>
-                <View style={styles.itemContent}>
-                  <Text style={styles.itemTitle}>Configuración</Text>
-                  <Text style={styles.itemSub}>Operador, RENSPA por defecto</Text>
-                </View>
-                <Text style={styles.itemArrow}>›</Text>
-              </TouchableOpacity>
-
-              <View style={styles.divider} />
-
-              {/* Soporte WhatsApp */}
-              <TouchableOpacity style={styles.item} onPress={abrirWhatsApp}>
-                <Text style={styles.itemIcon}>💬</Text>
-                <View style={styles.itemContent}>
-                  <Text style={styles.itemTitle}>WhatsApp soporte</Text>
-                  <Text style={styles.itemSub}>+54 9 11 6242-4700</Text>
-                </View>
-                <Text style={styles.itemArrow}>›</Text>
-              </TouchableOpacity>
-
-              {/* Soporte Email */}
-              <TouchableOpacity style={styles.item} onPress={abrirEmail}>
-                <Text style={styles.itemIcon}>✉️</Text>
-                <View style={styles.itemContent}>
-                  <Text style={styles.itemTitle}>Email soporte</Text>
-                  <Text style={styles.itemSub}>soporte@durflex.com.ar</Text>
-                </View>
-                <Text style={styles.itemArrow}>›</Text>
-              </TouchableOpacity>
-
-              <View style={styles.divider} />
-
-              <View style={styles.versionRow}>
-                <Text style={styles.version}>Durflex v1.0.0</Text>
-              </View>
             </View>
           ) : (
-            <View style={styles.configPanel}>
+            <View style={styles.brandHeader}>
+              <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={styles.closeBtnText}>✕</Text>
+              </TouchableOpacity>
+              <Image source={LOGO} style={styles.logo} />
+              <Text style={styles.brandSub}>Registro ganadero argentino</Text>
+            </View>
+          )}
+        </SafeAreaView>
+
+        {tab === 'cuenta' ? (
+          <View style={styles.body}><CuentaScreen /></View>
+        ) : (
+        <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
+          {tab === 'menu' ? (
+            <>
+              <Text style={styles.section}>CUENTA</Text>
+              <Item icon="☁️" title="Mi cuenta" sub="Copia de seguridad en la nube" onPress={() => setTab('cuenta')} />
+              <Item icon="⚙️" title="Configuración" sub="Operador y RENSPA por defecto" onPress={() => setTab('config')} />
+
+              <Text style={styles.section}>AYUDA</Text>
+              <Item icon="💬" title="WhatsApp soporte" sub="+54 9 11 6242-4700" onPress={abrirWhatsApp} />
+              <Item icon="✉️" title="Email soporte" sub="soporte@durflex.com.ar" onPress={abrirEmail} />
+
+              <View style={styles.footer}>
+                <Text style={styles.version}>Durflex v1.0.0</Text>
+                <Text style={styles.company}>LECVET S.R.L. · durflex.com.ar</Text>
+              </View>
+            </>
+          ) : (
+            <View style={styles.configCard}>
               <Text style={styles.configLabel}>Nombre del operador</Text>
               <TextInput
                 style={styles.configInput}
@@ -157,45 +132,66 @@ export default function MenuModal({ visible, onClose }) {
           )}
         </ScrollView>
         )}
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)' },
+  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)' },
   drawer: {
     position: 'absolute', top: 0, bottom: 0, right: 0,
-    width: '80%', backgroundColor: Colors.surface,
+    width: '84%', backgroundColor: Colors.background,
+    borderTopLeftRadius: 20, borderBottomLeftRadius: 20, overflow: 'hidden',
     shadowColor: '#000', shadowOffset: { width: -4, height: 0 },
-    shadowOpacity: 0.2, shadowRadius: 12, elevation: 20,
+    shadowOpacity: 0.25, shadowRadius: 16, elevation: 20,
   },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: Colors.header, padding: 20, paddingTop: 24,
+
+  // Header
+  headerSafe:  { backgroundColor: Colors.header },
+  brandHeader: { alignItems: 'center', paddingTop: 18, paddingBottom: 18, paddingHorizontal: 20 },
+  logo:        { width: 132, height: 125, resizeMode: 'contain' },
+  brandSub:    { fontSize: 13, color: Colors.headerTint, opacity: 0.85, marginTop: 8, letterSpacing: 0.3 },
+  closeBtn: {
+    position: 'absolute', top: 14, right: 14, zIndex: 2,
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: 'rgba(245,225,0,0.15)', alignItems: 'center', justifyContent: 'center',
   },
-  brand: {},
-  brandName: { fontSize: 22, fontWeight: '900', color: Colors.primary },
-  brandSub:  { fontSize: 12, color: Colors.headerTint, opacity: 0.8, marginTop: 2 },
-  closeBtn:  { padding: 6 },
-  closeBtnText: { fontSize: 20, color: Colors.headerTint },
+  closeBtnText: { fontSize: 16, color: Colors.headerTint, fontWeight: '700' },
+  subHeader:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16 },
   backBtn:      { marginRight: 12 },
-  backBtnText:  { fontSize: 14, color: Colors.headerTint, fontWeight: '600' },
+  backBtnText:  { fontSize: 16, color: Colors.headerTint, fontWeight: '600' },
   headerTitle:  { fontSize: 17, fontWeight: '700', color: Colors.headerTint, flex: 1 },
 
-  menuItems: { paddingVertical: 8 },
-  item: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16 },
-  itemIcon:    { fontSize: 22, width: 36 },
+  // Cuerpo
+  body:        { flex: 1 },
+  bodyContent: { padding: 16, paddingBottom: 40 },
+  section:     { fontSize: 11, fontWeight: '800', color: Colors.textMuted, letterSpacing: 1.2, marginTop: 10, marginBottom: 8, marginLeft: 4 },
+  card: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: Colors.surface, borderRadius: 14,
+    borderWidth: 1, borderColor: Colors.border,
+    paddingVertical: 12, paddingHorizontal: 12, marginBottom: 10,
+  },
+  iconBox: {
+    width: 42, height: 42, borderRadius: 12, marginRight: 12,
+    backgroundColor: '#FFF8C2', alignItems: 'center', justifyContent: 'center',
+  },
+  icon:        { fontSize: 20 },
   itemContent: { flex: 1 },
-  itemTitle:   { fontSize: 15, fontWeight: '600', color: Colors.text },
+  itemTitle:   { fontSize: 15, fontWeight: '700', color: Colors.text },
   itemSub:     { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
-  itemArrow:   { fontSize: 20, color: Colors.textMuted },
-  divider:     { height: 1, backgroundColor: Colors.border, marginHorizontal: 20 },
-  versionRow:  { alignItems: 'center', paddingVertical: 24 },
-  version:     { fontSize: 12, color: Colors.textMuted },
+  chevron:     { fontSize: 24, color: Colors.textMuted, marginLeft: 6 },
+  footer:      { alignItems: 'center', marginTop: 24 },
+  version:     { fontSize: 12, fontWeight: '700', color: Colors.textMuted },
+  company:     { fontSize: 11, color: Colors.textMuted, marginTop: 2, opacity: 0.8 },
 
-  configPanel: { padding: 20 },
-  configLabel: { fontSize: 13, fontWeight: '600', color: Colors.textLight, marginBottom: 6, marginTop: 16 },
+  // Configuración
+  configCard: {
+    backgroundColor: Colors.surface, borderRadius: 14, borderWidth: 1, borderColor: Colors.border,
+    padding: 16,
+  },
+  configLabel: { fontSize: 13, fontWeight: '600', color: Colors.textLight, marginBottom: 6, marginTop: 12 },
   configInput: {
     backgroundColor: Colors.background, borderWidth: 1, borderColor: Colors.border,
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, color: Colors.text,

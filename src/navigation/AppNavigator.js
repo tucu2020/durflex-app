@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { Text, Image, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -20,7 +20,7 @@ import { Colors }            from '../utils/colors';
 const Tab   = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-const LOGO = require('../../assets/logo.png');
+const LOGO = require('../../assets/logo-header.png'); // logo recortado (sin margen) para que se vea más grande
 
 function HeaderLogo() {
   return <Image source={LOGO} style={styles.logo} />;
@@ -111,12 +111,17 @@ function AppNavigatorInner() {
     ),
     tabBarActiveTintColor:   Colors.tabBarActive,
     tabBarInactiveTintColor: Colors.tabBarInactive,
-    tabBarStyle: {
-      backgroundColor: Colors.tabBar,
-      borderTopColor:  Colors.border,
-      paddingBottom:   4 + insets.bottom,
-      height:          60 + insets.bottom,
-    },
+    // iOS: la librería ya respeta el área segura (home indicator); si le
+    // sumamos el inset a mano la barra queda el doble de alta.
+    // Android: sumamos el espacio de los botones de navegación (fix Roberto).
+    tabBarStyle: Platform.OS === 'ios'
+      ? { backgroundColor: Colors.tabBar, borderTopColor: Colors.border }
+      : {
+          backgroundColor: Colors.tabBar,
+          borderTopColor:  Colors.border,
+          paddingBottom:   4 + insets.bottom,
+          height:          60 + insets.bottom,
+        },
     tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
     ...headerOptions(),
   });
@@ -139,7 +144,7 @@ function AppNavigatorInner() {
 }
 
 const styles = StyleSheet.create({
-  logo:          { height: 42, width: 158, resizeMode: 'contain' },
+  logo:          { height: 44, width: 150, resizeMode: 'contain' },
   hamburger:     { marginRight: 16, padding: 4 },
   hamburgerIcon: { fontSize: 22, color: Colors.headerTint },
 });

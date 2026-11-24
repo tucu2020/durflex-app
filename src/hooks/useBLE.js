@@ -21,7 +21,11 @@ import { Platform, PermissionsAndroid } from 'react-native';
 // --- Carga defensiva del módulo nativo -------------------------------------
 let RNBluetoothClassic = null;
 let nativeAvailable = false;
-try {
+// En iPhone NO se carga: el Bluetooth clasico (SPP) no existe en iOS salvo
+// accesorios MFi, y la libreria crashea al iniciar (build 9). En iOS el
+// baston se empareja desde Ajustes > Bluetooth y funciona como teclado.
+const IS_IOS = Platform.OS === 'ios';
+if (!IS_IOS) try {
   // require dentro de try: en Expo Go el módulo nativo no existe y tira.
   const mod = require('react-native-bluetooth-classic');
   RNBluetoothClassic = mod?.default ?? mod;
@@ -94,7 +98,7 @@ export function useBLE() {
   const [rawData, setRawData]     = useState('');   // último dato crudo recibido
   const [rawLog, setRawLog]       = useState([]);   // historial de datos crudos
   const [error, setError]         = useState('');
-  const [btState, setBtState]     = useState(nativeAvailable ? 'Unknown' : 'Mock');
+  const [btState, setBtState]     = useState(IS_IOS ? 'iOS' : (nativeAvailable ? 'Unknown' : 'Mock'));
 
   const scanTimer    = useRef(null);
   const readTimer    = useRef(null);
@@ -128,6 +132,12 @@ export function useBLE() {
   const startScan = useCallback(async () => {
     setError('');
     setDevices([]);
+
+    // ---- iPhone: sin conexion directa; el baston va como teclado ----
+    if (IS_IOS) {
+      setError('En iPhone, emparejá el bastón desde Ajustes > Bluetooth. Funciona como teclado: las lecturas se cargan solas en el campo de caravana.');
+      return;
+    }
 
     // ---- Fallback simulación ----
     if (!nativeAvailable) {
@@ -195,6 +205,7 @@ export function useBLE() {
   // ---------------- Conexión ----------------
   const connectDevice = useCallback(async (deviceId) => {
     setError('');
+    if (IS_IOS) return;
 
     // ---- Fallback simulación ----
     if (!nativeAvailable) {
@@ -314,7 +325,7 @@ export function useBLE() {
     deviceRef.current = null;
     setConnected(null);
     setLastRead('');
-    setBtState(nativeAvailable ? 'Unknown' : 'Mock');
+    setBtState(IS_IOS ? 'iOS' : (nativeAvailable ? 'Unknown' : 'Mock'));
   }, [connected]);
 
   const clearLastRead = useCallback(() => setLastRead(''), []);
@@ -330,7 +341,8 @@ export function useBLE() {
     rawLog,
     error,
     isSupported: nativeAvailable,
-    isMock: !nativeAvailable,
+    isMock:      !nativeAvailable && !IS_IOS,
+    isIOS:       IS_IOS,
     startScan,
     stopScan,
     connectDevice,

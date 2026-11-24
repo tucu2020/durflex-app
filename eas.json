@@ -1,7 +1,8 @@
 {
   "cli": {
     "version": ">= 18.7.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "remote",
+    "promptToConfigurePushNotifications": false
   },
   "build": {
     "development": {
@@ -28,6 +29,11 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6835929062",
+        "appleTeamId": "4C2V7U923L"
+      }
+    }
   }
 }

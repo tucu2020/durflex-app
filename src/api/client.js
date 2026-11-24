@@ -100,6 +100,14 @@ export async function perfil() {
   return r.usuario;
 }
 
+// Elimina la cuenta en el servidor (irreversible) y limpia la sesion local.
+export async function eliminarCuenta({ password }) {
+  await pedir('eliminar', { password });
+  await setToken('');
+  await setUsuarioGuardado(null);
+  await setSetting('sync_ultimo_ms', '0');
+}
+
 export async function enviarSync(payload) {
   return await pedir('sync', payload);
 }
